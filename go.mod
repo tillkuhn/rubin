@@ -1,4 +1,4 @@
-module github.com/user/rubin
+module github.com/tillkuhn/rubin
 
 go 1.19
 

@@ -16,7 +16,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/user/rubin/internal/log"
+	"github.com/tillkuhn/rubin/internal/log"
 )
 
 const defaultTimeout = 30 * time.Second

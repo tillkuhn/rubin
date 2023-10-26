@@ -8,10 +8,10 @@ import (
 	"text/tabwriter"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/user/rubin/pkg/rubin"
+	"github.com/tillkuhn/rubin/pkg/rubin"
 	"go.uber.org/automaxprocs/maxprocs"
 
-	"github.com/user/rubin/internal/log"
+	"github.com/tillkuhn/rubin/internal/log"
 )
 
 const envconfigPrefix = "kafka"
