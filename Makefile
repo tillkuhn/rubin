@@ -8,7 +8,10 @@ DOCKER_TAG = latest
 
 # customization
 .DEFAULT_GOAL = help
-
+export KAFKA_REST_ENDPOINT ?= $(shell test -f pkg/rubin/.integration-test-options.yaml && grep restEndpoint pkg/rubin/.integration-test-options.yaml|cut -d: -f2-|xargs || echo "https://localhost:443")
+export KAFKA_CLUSTER_ID ?= $(shell test -f pkg/rubin/.integration-test-options.yaml && grep clusterID pkg/rubin/.integration-test-options.yaml|cut -d: -f2-|xargs || echo "")
+export KAFKA_API_KEY ?= $(shell test -f pkg/rubin/.integration-test-options.yaml && grep apiKey pkg/rubin/.integration-test-options.yaml|cut -d: -f2-|xargs || echo "")
+export KAFKA_API_SECRET ?= $(shell test -f pkg/rubin/.integration-test-options.yaml && grep apiSecret pkg/rubin/.integration-test-options.yaml|cut -d: -f2-|xargs || echo "")
 
 all: git-hooks  tidy ## Initializes all tools
 
@@ -38,7 +41,7 @@ test-build: ## Tests whether the code compiles
 
 build: out/bin ## Builds all binaries
 
-GO_BUILD = mkdir -pv "$(@)" && go build -ldflags="-w -s" -o "$(@)" ./...
+GO_BUILD = mkdir -pv "$(@)" && go build -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)' -X 'main.date=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")'" -o "$(@)" ./...
 .PHONY: out/bin
 out/bin:
 	$(GO_BUILD)
@@ -49,13 +52,13 @@ $(GOLANGCI_LINT):
 	@mv bin/golangci-lint "$(@)"
 
 lint: fmt $(GOLANGCI_LINT) download ## Lints all code with golangci-lint
-	@$(GOLANGCI_LINT) run --fix
+	$(GOLANGCI_LINT) run --fix
 
 lint-reports: out/lint.xml
 
 .PHONY: out/lint.xml
 out/lint.xml: $(GOLANGCI_LINT) out download
-	@$(GOLANGCI_LINT) run ./... --out-format checkstyle | tee "$(@)"
+	$(GOLANGCI_LINT) run ./... --out-format checkstyle | tee "$(@)"
 
 #@go test $(ARGS) ./...
 test: ## Runs all tests  (with colorized output support if gotest is installed)
@@ -94,5 +97,5 @@ help: ## Shows the help
 	@echo 'Available targets are:'
 	@echo ''
 	@grep -E '^[ a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-        awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+        awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' | sort
 	@echo ''

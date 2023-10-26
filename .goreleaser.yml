@@ -1,0 +1,35 @@
+# Use the following command for local testing (only creates binaries in local dist/ directory)
+# RUBIN_VERSION=latest
+# RUBIN_BUILD_DATE=$(date +'%Y-%m-%dT%H:%M:%S') ˜
+# RUBIN_COMMIT=$(git log -1 --pretty=format:%h) \
+# goreleaser build --clean --skip-validate --snapshot
+
+before:
+  hooks:
+    - go mod tidy
+
+gomod:
+  proxy: true
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # (...) if we only have GOARCH=arm64, we do not need to set a variable GOARM
+    # https://github.com/goreleaser/goreleaser/issues/36
+    # goarm: ["6", "7"]
+    # https://goreleaser.com/cookbooks/using-main.version/
+    # By default, GoReleaser will set the following 3 ldflags main.version, main.commit, main.date
+    ldflags:
+      #- -s -w -X github.com/tillkuhn/rubin/cmd.Version={{.Env.RUBIN_VERSION}} -X github.com/tillkuhn/rubin/cmd.Commit={{.Env.RUBIN_COMMIT}} -X github.com/tillkuhn/rubin/cmd.BuildDate={{.Env.rubin_BUILD_DATE}}
+      - -s -w
+archives:
+  - format: zip
+    files:
+      - none*

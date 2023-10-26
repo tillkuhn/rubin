@@ -52,3 +52,6 @@ issues:
         - gosec
         - funlen
         - noctx
+    # this is the exception for commit, data and version variable which with pass in using ldflags
+    - path: main.go
+      linters: [gochecknoglobals]

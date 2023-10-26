@@ -14,7 +14,13 @@ import (
 	"github.com/user/rubin/internal/log"
 )
 
-const AppID = "rubin"
+const envconfigPrefix = "kafka"
+
+var (
+	version = "latest"
+	date    = "now"
+	commit  = ""
+)
 
 func main() {
 	// Disable automaxprocs log see https://github.com/uber-go/automaxprocs/issues/18
@@ -37,26 +43,29 @@ func run() error {
 			// app := path.Base(os.Args[0])
 			// fmt.Printf("*%s* is configured via %s.\nThe following environment variables can be used (`%s --help`):",
 			//	app, "https://github.com/kelseyhightower/envconfig[envconfig]", app)
-			tabs := tabwriter.NewWriter(os.Stdout, 1, 0, 4, ' ', 0)
-			_ = envconfig.Usagef("env_config", &rubin.Options{}, tabs, envconfig.DefaultTableFormat)
+			usagePadding := 4
+			tabs := tabwriter.NewWriter(os.Stdout, 1, 0, usagePadding, ' ', 0)
+			_ = envconfig.Usagef(envconfigPrefix, &rubin.Options{}, tabs, envconfig.DefaultTableFormat)
 			_ = tabs.Flush()
+			// flag.Usage() // https://stackoverflow.com/a/23726033/4292075
 			fmt.Println("\nThis Application also supports the following CLI arguments")
 			flag.PrintDefaults()
 			return nil
 		}
 	}
 	logger := log.NewAtLevel(os.Getenv("LOG_LEVEL"))
-	var options rubin.Options
-	if err := envconfig.Process(AppID, &options); err != nil {
-		logger.Errorf("Cannot process environment config: %v", err)
-		return err
-	}
-
 	defer func() {
 		_ = logger.Sync() // flushed any buffered log entries
 	}()
+	logger.Infof("rubin version=%s built=%s commit=%s", version, date, commit)
 
+	var options rubin.Options
+	if err := envconfig.Process(envconfigPrefix, &options); err != nil {
+		logger.Errorf("Cannot process environment config: %v", err)
+		return err
+	}
 	client := rubin.New(&options)
+
 	if _, err := client.Produce(context.Background(), *topic, "", record); err != nil {
 		logger.Errorf("Cannot produce record to %s: %v", *topic, err)
 		return err

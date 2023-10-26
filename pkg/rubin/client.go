@@ -12,17 +12,24 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 
 	"github.com/user/rubin/internal/log"
 )
 
+const defaultTimeout = 30 * time.Second
+
 // New returns a new Rubin Client for http interaction
 func New(options *Options) *Client {
 	logger := log.NewAtLevel(os.Getenv("LOG_LEVEL"))
 	logger.Infow("Rubin  Client configured",
-		"endpoint", options.RestEndpoint, "useSecret", len(options.APIPassword) > 0)
+		"endpoint", options.RestEndpoint, "useSecret", len(options.APISecret) > 0)
+	if options.HTTPTimeout.Seconds() < 1 {
+		logger.Debugf("Timeout duration is zero or too low, using default %v", defaultTimeout)
+		options.HTTPTimeout = defaultTimeout
+	}
 	return &Client{
 		options: options,
 		logger:  *logger,
@@ -32,7 +39,10 @@ func New(options *Options) *Client {
 // Produce produces records to the given topic, returning delivery reports for each record produced.
 // Example URL: https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443/kafka/v3/clusters/lkc-gqmo5r/topics/public.welcome/records
 func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}) (Response, error) {
-	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.APIKey, c.options.APIPassword)))
+	defer func() {
+		_ = c.logger.Sync() // flushed any buffered log entries
+	}()
+	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.APIKey, c.options.APISecret)))
 	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, topic)
 	payload := NewTopicPayload([]byte(key), data)
 	payloadJSON, _ := json.Marshal(payload)
@@ -59,13 +69,19 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 		return kResp, err
 	}
 
+	// deal with err113: do not define dynamic errors, use wrapped static errors instead:
+	responseError := errors.New("unexpected rest proxy api response")
+
 	if res.StatusCode != http.StatusOK {
-		return kResp, errors.Wrap(err, fmt.Sprintf("unexpected status code %d for %s", res.StatusCode, url))
+		return kResp, errors.Wrap(responseError, fmt.Sprintf("unexpected http response status code %d for %s", res.StatusCode, url))
 	}
 	if err := json.Unmarshal(body, &kResp); err != nil {
 		return kResp, errors.Wrap(err, fmt.Sprintf("unexpected topic api response: %s", string(body)))
 	}
-	c.logger.Infow("Record committed", "status", kResp.ErrorCode, "offset", kResp.Offset, "topic", kResp.TopicName)
+	if kResp.ErrorCode != http.StatusOK {
+		return kResp, errors.Wrap(responseError, fmt.Sprintf("unexpected kafka response error code %d for %s", kResp.ErrorCode, url))
+	}
+	c.logger.Infow("Record committed", "status", kResp.ErrorCode, "offset", kResp.Offset, "topic", kResp.TopicName, "partition", kResp.PartitionID)
 	return kResp, nil
 }
 
