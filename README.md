@@ -7,8 +7,8 @@
 
 ## Introduction
 
-rubin is basically just thin wrapper around [Confluent's  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to produce 
-event records for an existing Kafka Topic, written in Go and using just plain http communication.
+*rubin* is basically a thin wrapper around [Confluent's  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to produce 
+event records for an existing Kafka Topic. It's written in Go and uses just plain http communication, a couple of environment variables and CLI switches.
 
 ## Why the funky name?
 
@@ -17,24 +17,6 @@ Initially I thought of technical names like `kafka-record-prodcer` or `topic-pus
 
 ## Installation and usage
 
-### Use as library in external application
-
-
-```
-go get github.com/tillkuhn/rubin
-```
-```
-client := rubin.New(&rubin.Options{
-	RestEndpoint: "https://localhost:443",
-	ClusterID:    "abc-r2d2",
-	APIKey: "1234567890",
-	APISecret: "**********",
-})
-resp, err := client.Produce(context.Background(), "toppic", "", "hey")
-if err != nil {
-	logger.Errorf("Cannot produce record to %s: %v", topic, err)
-}
-```
 ### Use as standalone CLI
 
 Grap the most recent release from the [releases page](https://github.com/tillkuhn/rubin/releases)
@@ -53,11 +35,30 @@ Run the standalone binary
 
 ```
 $ rubin -topic public.hello -record "Hello Franz!"
-9:49PM	INFO	rubin/main.go:60	Welcome to rubin	{"version": "v0.0.5", "built": "now", "commit": "7759eb6"}
-9:49PM	INFO	rubin/client.go:27	Kafka REST Proxy Client configured	{"endpoint": "https://localhost:443", "useSecret": true}
-9:49PM	INFO	rubin/client.go:53	Push record	{"url": "https://localhost.cloud:443/kafka/v3/clusters/abc-r2d2/topics/public.hello/records"}
-9:49PM	INFO	rubin/client.go:84	Record committed	{"status": "topic", "public.hello": 200, "offset": 43, "partition": 0}
 
+9:49PM	INFO	rubin/main.go:60	Welcome to rubin  {"version": "v0.0.5", "built": "now", "commit": "7759eb6"}
+9:49PM	INFO	rubin/client.go:27	Kafka REST Proxy Client configured  {"endpoint": "https://localhost:443", "useSecret": true}
+9:49PM	INFO	rubin/client.go:53	Push record  {"url": "https://localhost.cloud:443/kafka/v3/clusters/abc-r2d2/topics/public.hello/records"}
+9:49PM	INFO	rubin/client.go:84	Record committed  {"status": "topic", "public.hello": 200, "offset": 43, "partition": 0}
+
+```
+### Use as library in external application
+
+
+```
+go get github.com/tillkuhn/rubin
+```
+```
+client := rubin.New(&rubin.Options{
+	RestEndpoint: "https://localhost:443",
+	ClusterID:    "abc-r2d2",
+	APIKey: "1234567890",
+	APISecret: "**********",
+})
+resp, err := client.Produce(context.Background(), "toppic", "", "hey")
+if err != nil {
+	logger.Errorf("Cannot produce record to %s: %v", topic, err)
+}
 ```
 
 ### Use as docker image
