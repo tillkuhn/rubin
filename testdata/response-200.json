@@ -1,0 +1,16 @@
+{
+  "error_code": 200,
+  "cluster_id": "abc-r2d2",
+  "topic_name": "public.welcome",
+  "partition_id": 0,
+  "offset": 42,
+  "timestamp": "2022-11-15T12:05:20.945Z",
+  "key": {
+    "type": "BINARY",
+    "size": 6
+  },
+  "value": {
+    "type": "JSON",
+    "size": 31
+  }
+}
