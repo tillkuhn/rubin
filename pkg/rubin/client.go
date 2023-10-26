@@ -1,4 +1,4 @@
-// Package rubin experiments with Confluent REST API for sync Kafka communication
+// Package rubin experiments with Kafka REST Proxy API for sync Kafka communication
 // Full docs: https://docs.confluent.io/cloud/current/api.html#tag/Records-(v3)
 package rubin
 
@@ -17,11 +17,11 @@ import (
 	"github.com/user/rubin/internal/log"
 )
 
-// New returns a new Confluent Client for http interaction
+// New returns a new Rubin Client for http interaction
 func New(options *Options) *Client {
 	logger := log.NewAtLevel(os.Getenv("LOG_LEVEL"))
-	logger.Infof("Confluent  Client configured for %s@%s (using password: %v)",
-		options.ApiKey, options.RestEndpoint, len(options.ApiPassword) > 0)
+	logger.Infow("Rubin  Client configured",
+		"endpoint", options.RestEndpoint, "useSecret", len(options.ApiPassword) > 0)
 	return &Client{
 		options: options,
 		logger:  *logger,
@@ -38,33 +38,34 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(payloadJson))
 	req.Header.Set("Content-Type", "application/json") // don't add ;charset=UTF8 or server will complain
 	req.Header.Add("Authorization", "Basic "+basicAuth)
-	c.logger.Infof("Send message to %s", url)
+
+	c.logger.Infof("Push record to %s", url)
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	if c.options.debug {
 		reqDump, _ := httputil.DumpRequestOut(req, true)
 		fmt.Printf("REQUEST:\n%s", string(reqDump)) // only for debug
 	}
-	var kResponse Response
+	var kResp Response
 	res, err := httpClient.Do(req)
 	if err != nil {
-		return kResponse, err
+		return kResp, err
 	}
 
 	defer c.closeSilently(res.Body)
 	body, err := io.ReadAll(res.Body)
-	kResponse.ErrorCode = res.StatusCode
+	kResp.ErrorCode = res.StatusCode
 	if err != nil {
-		return kResponse, err
+		return kResp, err
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return kResponse, fmt.Errorf("unexpected status code %d for %s", res.StatusCode, url)
+		return kResp, fmt.Errorf("unexpected status code %d for %s", res.StatusCode, url)
 	}
-	if err := json.Unmarshal(body, &kResponse); err != nil {
-		return kResponse, fmt.Errorf("unexpected topic api response: %s", string(body))
+	if err := json.Unmarshal(body, &kResp); err != nil {
+		return kResp, fmt.Errorf("unexpected topic api response: %s", string(body))
 	}
-	c.logger.Infof("Response: offset %v topic %v", kResponse.Offset, kResponse.TopicName)
-	return kResponse, nil
+	c.logger.Infow("Record committed", "status", kResp.ErrorCode, "offset", kResp.Offset, "topic", kResp.TopicName)
+	return kResp, nil
 
 }
 

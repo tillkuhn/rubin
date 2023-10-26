@@ -8,11 +8,11 @@ import (
 // Options keeps the settings to set up client connection.
 type Options struct {
 	// RestEndpoint of confluent cluster
-	RestEndpoint string `yaml:"restEndpoint"`
+	RestEndpoint string `yaml:"restEndpoint" default:"" required:"false" desc:"Kafka REST Proxy Endpoint"  split_words:"true"`
 	// ClusterID of confluent cluster
-	ClusterID   string `yaml:"clusterID"`
-	ApiKey      string `yaml:"apiKey"`
-	ApiPassword string `yaml:"apiPassword"`
+	ClusterID   string `yaml:"clusterID" default:"" required:"false" desc:"Kafka Cluster ID"  split_words:"true"`
+	ApiKey      string `yaml:"apiKey" default:"" required:"false" desc:"Kafka API Key with Producer Privileges"  split_words:"true"`
+	ApiPassword string `yaml:"apiPassword" default:"" required:"false" desc:"Kafka API Secret with Producer Privileges"  split_words:"true"`
 	// debug can be only activated from within this package (e.g. for integration testing)
 	debug bool
 }
