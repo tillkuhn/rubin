@@ -1,4 +1,4 @@
-# Rubin - a simple Kafka Record Producer
+# 💿 rubin - a simple record producer for kafka topics
 
 [![GoTemplate](https://img.shields.io/badge/go/template-black?logo=go)](https://github.com/SchwarzIT/go-template)
 ![ci-build](https://github.com/tillkuhn/rubin/workflows/main/badge.svg)
