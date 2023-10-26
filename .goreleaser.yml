@@ -29,6 +29,7 @@ builds:
     ldflags:
       #- -s -w -X github.com/tillkuhn/rubin/cmd.Version={{.Env.RUBIN_VERSION}} -X github.com/tillkuhn/rubin/cmd.Commit={{.Env.RUBIN_COMMIT}} -X github.com/tillkuhn/rubin/cmd.BuildDate={{.Env.rubin_BUILD_DATE}}
       - -s -w
+    main: ./cmd/rubin
 archives:
   - format: zip
     files:
