@@ -5,8 +5,8 @@
 
 ## Introduction
 
-A thin wrapper around [Confluent's  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to send 
-events records to an existing Kafka Topic using just plain http and a couple of environment variables and arguments.
+A thin wrapper around [Confluent's  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to produce 
+events records for an existing Kafka Topic, using just plain http communication.
 
 ## Why the funky name?
 
@@ -25,13 +25,14 @@ go get github.com/tillkuhn/rubin
 client := rubin.New(&rubin.Options{
 	RestEndpoint: "https://localhost:443",
 	ClusterID:    "abc-r2d2",
-	ApiKey: "1234567890",
-	ApiPassword: "**********",
+	APIKey: "1234567890",
+	APISecret: "**********",
 })
 topic := "toppig"
-if _, err := client.Produce(context.Background(), topic, "", "hey"); err != nil {
+resp, err := client.Produce(context.Background(), topic, "", "hey")
+if err != nil {
 	logger.Errorf("Cannot produce record to %s: %v", topic, err)
-
+}
 ```
 ### Use as standalone CLI
 
