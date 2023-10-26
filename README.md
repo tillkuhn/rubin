@@ -125,5 +125,5 @@ The package API for rubin is still version zero and therefore not yet considered
 This project was bootstrapped with [go/template](https://github.com/SchwarzIT/go-template), an efficient tool to "provides a blueprint for production-ready Go project layouts."
 
 ## Contribution
-If you want to contribute to go/template please have a look at the [contribution guidelines](./CONTRIBUTING.md).
+If you want to contribute to *rubin* please have a look at the [contribution guidelines](./CONTRIBUTING.md).
 
