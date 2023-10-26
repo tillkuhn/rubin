@@ -1,7 +1,7 @@
 # 💿 rubin - a simple record producer for kafka topics
 
 [![GoTemplate](https://img.shields.io/badge/go/template-black?logo=go)](https://github.com/SchwarzIT/go-template)
-![ci-build](https://github.com/tillkuhn/rubin/workflows/main/badge.svg)
+![ci-build](https://github.com/tillkuhn/rubin/actions/workflows/main.yml/badge.svg)
 
 ## Introduction
 
