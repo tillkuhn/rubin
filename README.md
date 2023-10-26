@@ -5,7 +5,13 @@
 
 ## Introduction
 
-A thin wrapper around [Confluent's  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to send messages and events to a Kafka Topic.
+A thin wrapper around [Confluent's  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to send 
+events records to an existing Kafka Topic using just plain http and a couple of environment variables and arguments.
+
+## Why the funky name?
+
+Initially I thought of technical names like `kafka-record-prodcer` or `topic-pusher`, but all of them turned out to be pretty boring. [Rick Rubin](https://en.wikipedia.org/wiki/Rick_Rubin) was simply the first name that showed up when I googled for "famous record producers", so I named the tool in his honour, and also in honour of the great Albums he produced in the past decades.
+
 
 ## Installation and usage
 
@@ -29,6 +35,8 @@ if _, err := client.Produce(context.Background(), topic, "", "hey"); err != nil 
 ```
 ### Use as standalone CLI
 
+Grap the most recent release from the [releases page](https://github.com/tillkuhn/rubin/releases)
+
 ```
 $ printenv | grep -e ^RUBIN
 RUBIN_REST_ENDPOINT=https://localhost:443
@@ -46,11 +54,6 @@ $ rubin -topic public.hello -record "Hello Franz!"
 ### Use as docker image
 
 todo
-
-## Why the funky name?
-
-Initially I thought of technical names like `kafka-record-prodcer` or `topic-pusher`, but all of them turned out to be pretty boring. [Rick Rubin](https://en.wikipedia.org/wiki/Rick_Rubin) was simply the first name that showed up when I googled for "famous record producers", so I named the tool in his honour, and also in honour of the great Albums he produced in the past decades.
-
 
 ## API stability
 
