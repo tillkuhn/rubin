@@ -30,6 +30,9 @@ fmt: ## Formats all code with go fmt
 run: fmt ## Run the app
 	@go run ./cmd/rubin/main.go -topic public.hello -record "hello franz!"
 
+run-help: fmt ## Run the app and display app helm
+	@go run ./cmd/rubin/main.go -help
+
 test-build: ## Tests whether the code compiles
 	@go build -o /dev/null ./...
 

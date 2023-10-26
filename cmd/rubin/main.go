@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path"
+	"text/tabwriter"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/user/rubin/pkg/rubin"
@@ -34,9 +34,14 @@ func run() error {
 		help := flag.Bool("help", false, "Display help")
 		flag.Parse()
 		if *help {
-			app := path.Base(os.Args[0])
-			fmt.Printf("*%s* is configured via %s. The following environment variables can be used (`%s --help`):",
-				app, "https://github.com/kelseyhightower/envconfig[envconfig]", app)
+			// app := path.Base(os.Args[0])
+			// fmt.Printf("*%s* is configured via %s.\nThe following environment variables can be used (`%s --help`):",
+			//	app, "https://github.com/kelseyhightower/envconfig[envconfig]", app)
+			tabs := tabwriter.NewWriter(os.Stdout, 1, 0, 4, ' ', 0)
+			_ = envconfig.Usagef("env_config", &rubin.Options{}, tabs, envconfig.DefaultTableFormat)
+			_ = tabs.Flush()
+			fmt.Println("\nThis Application also supports the following CLI arguments")
+			flag.PrintDefaults()
 			return nil
 		}
 	}
