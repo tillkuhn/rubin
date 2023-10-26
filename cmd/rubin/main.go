@@ -4,16 +4,17 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"path"
+
 	"github.com/kelseyhightower/envconfig"
 	"github.com/user/rubin/pkg/rubin"
 	"go.uber.org/automaxprocs/maxprocs"
-	"os"
-	"path"
 
 	"github.com/user/rubin/internal/log"
 )
 
-const appId = "rubin"
+const AppID = "rubin"
 
 func main() {
 	// Disable automaxprocs log see https://github.com/uber-go/automaxprocs/issues/18
@@ -41,7 +42,7 @@ func run() error {
 	}
 	logger := log.NewAtLevel(os.Getenv("LOG_LEVEL"))
 	var options rubin.Options
-	if err := envconfig.Process(appId, &options); err != nil {
+	if err := envconfig.Process(AppID, &options); err != nil {
 		logger.Errorf("Cannot process environment config: %v", err)
 		return err
 	}
@@ -57,5 +58,4 @@ func run() error {
 	}
 
 	return nil
-
 }

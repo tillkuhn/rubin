@@ -2,10 +2,11 @@ package log
 
 import (
 	"fmt"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"os"
 	"time"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // NewAtLevel returns a sugared zap Logger configured for the default level

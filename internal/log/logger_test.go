@@ -1,9 +1,10 @@
 package log
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"testing"
 )
 
 func TestProduceMessageOK(t *testing.T) {
