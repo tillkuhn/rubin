@@ -34,18 +34,22 @@ $ printenv | grep -e ^RUBIN
 RUBIN_REST_ENDPOINT=https://localhost:443
 RUBIN_API_KEY=1234567890
 RUBIN_CLUSTER_ID=abc-r2d2
-RUBIN_API_PASSWORD=********
+RUBIN_API_SECRET=********
 ```
 ```
-$ rubin -topic public.hello -message "Hello Franz!"
-3:17PM	INFO	rubin/client.go:23	Rubin  Client configured	{"endpoint": "https://localhost:443", "useSecret": true}
-3:17PM	INFO	rubin/client.go:42	Push record to https://localhost:443/kafka/v3/clusters/abc-r2d2/topics/public.hello/records
-3:17PM	INFO	rubin/client.go:67	Record committed	{"status": 200, "offset": 23, "topic": "public.hello"}
+$ rubin -topic public.hello -record "Hello Franz!"
+7:14PM	INFO	rubin/client.go:27	Rubin  Client configured	{"endpoint": "https://localhost:443", "useSecret": true}
+7:14PM	INFO	rubin/client.go:53	Push record to https://localhost:443/kafka/v3/clusters/abc-r2d2/topics/public.hello/records
+7:14PM	INFO	rubin/client.go:84	Record committed	{"status": 200, "offset": 35, "topic": "public.hello", "partition": 0}
 ```
 
 ### Use as docker image
 
 todo
+
+## Why the funky name?
+
+Initially I thought of technical names like `kafka-record-prodcer` or `topic-pusher`, but all of them turned out to be pretty boring. [Rick Rubin](https://en.wikipedia.org/wiki/Rick_Rubin) was simply the first name that showed up when I googled for "famous record producers", so I named the tool in his honour, and also in honour of the great Albums he produced in the past decades.
 
 
 ## API stability
@@ -56,13 +60,15 @@ The package API for yaml v0 and therefore not yet considered stable as described
 
 The project uses `make` to make your life easier. If you're not familiar with Makefiles you can take a look at [this quickstart guide](https://makefiletutorial.com).
 
+### Target Help 
+
 Whenever you need help regarding the available actions, just use the following command.
 
 ```bash
 make help
 ```
 
-## Setup
+### Setup
 
 To get your setup up and running the only thing you have to do is
 
@@ -73,7 +79,7 @@ make all
 This will initialize a git repo, download the dependencies in the latest versions and install all needed tools.
 If needed code generation will be triggered in this target as well.
 
-## Test & lint
+### Test & lint
 
 Run linting
 
@@ -87,10 +93,12 @@ Run tests
 make test
 ```
 
+Run integration tests
 
-## Why the funky name?
-
-Initially I thought of technical names like `kafka-record-prodcer` or `topic-pusher`, but all of them turned out to be pretty boring. [Rick Rubin](https://en.wikipedia.org/wiki/Rick_Rubin) was simply the first name that showed up when I googled for "famous record producers", so I named the tool in his honour, and also in honour of the great Albums he produced in the past decades.   
+```bash
+vi pkg/rubin/.integration-test-options.yaml
+make test-int	
+```
 
 ## Credits
 
