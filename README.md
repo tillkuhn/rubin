@@ -4,6 +4,7 @@
 ![ci-build](https://github.com/tillkuhn/rubin/actions/workflows/main.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tillkuhn/rubin)](https://goreportcard.com/report/github.com/tillkuhn/rubin)
 [![Go Reference](https://pkg.go.dev/badge/github.com/tillkuhn/rubin.svg)](https://pkg.go.dev/github.com/tillkuhn/rubin)
+[![SonarCloud](https://sonarcloud.io/images/project_badges/sonarcloud-black.svg)](https://sonarcloud.io/summary/new_code?id=tillkuhn_rubin)
 
 ## Introduction
 
