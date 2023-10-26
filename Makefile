@@ -31,7 +31,7 @@ fmt: ## Formats all code with go fmt
 	@go fmt ./...
 
 run: fmt ## Run the app
-	@go run ./cmd/rubin/main.go -topic public.hello -record "hello franz!"
+	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" ./cmd/rubin/main.go -topic public.hello -record "hello franz!"
 
 run-help: fmt ## Run the app and display app helm
 	@go run ./cmd/rubin/main.go -help

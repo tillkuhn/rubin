@@ -24,7 +24,7 @@ const defaultTimeout = 30 * time.Second
 // New returns a new Rubin Client for http interaction
 func New(options *Options) *Client {
 	logger := log.NewAtLevel(os.Getenv("LOG_LEVEL"))
-	logger.Infow("Rubin  Client configured",
+	logger.Infow("Kafka REST Proxy Client configured",
 		"endpoint", options.RestEndpoint, "useSecret", len(options.APISecret) > 0)
 	if options.HTTPTimeout.Seconds() < 1 {
 		logger.Debugf("Timeout duration is zero or too low, using default %v", defaultTimeout)
@@ -50,7 +50,7 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	req.Header.Set("Content-Type", "application/json") // don't add ;charset=UTF8 or server will complain
 	req.Header.Add("Authorization", "Basic "+basicAuth)
 
-	c.logger.Infof("Push record to %s", url)
+	c.logger.Infow("Push record", "url", url)
 	httpClient := &http.Client{Timeout: c.options.HTTPTimeout}
 	if c.options.debug {
 		reqDump, _ := httputil.DumpRequestOut(req, true)
@@ -69,7 +69,7 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 		return kResp, err
 	}
 
-	// deal with err113: do not define dynamic errors, use wrapped static errors instead:
+	// deal with err113: do not define dynamic errors, (re-)use wrapped static errors instead:
 	responseError := errors.New("unexpected rest proxy api response")
 
 	if res.StatusCode != http.StatusOK {
@@ -81,7 +81,7 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	if kResp.ErrorCode != http.StatusOK {
 		return kResp, errors.Wrap(responseError, fmt.Sprintf("unexpected kafka response error code %d for %s", kResp.ErrorCode, url))
 	}
-	c.logger.Infow("Record committed", "status", kResp.ErrorCode, "offset", kResp.Offset, "topic", kResp.TopicName, "partition", kResp.PartitionID)
+	c.logger.Infow("Record committed", "status", "topic", kResp.TopicName, kResp.ErrorCode, "offset", kResp.Offset, "partition", kResp.PartitionID)
 	return kResp, nil
 }
 

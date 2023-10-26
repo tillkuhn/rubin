@@ -37,6 +37,8 @@ if _, err := client.Produce(context.Background(), topic, "", "hey"); err != nil 
 
 Grap the most recent release from the [releases page](https://github.com/tillkuhn/rubin/releases)
 
+Configure Environment
+
 ```
 $ printenv | grep -e ^RUBIN
 RUBIN_REST_ENDPOINT=https://localhost:443
@@ -44,20 +46,21 @@ RUBIN_API_KEY=1234567890
 RUBIN_CLUSTER_ID=abc-r2d2
 RUBIN_API_SECRET=********
 ```
+
+Run the standalone binary
+
 ```
 $ rubin -topic public.hello -record "Hello Franz!"
-7:14PM	INFO	rubin/client.go:27	Rubin  Client configured	{"endpoint": "https://localhost:443", "useSecret": true}
-7:14PM	INFO	rubin/client.go:53	Push record to https://localhost:443/kafka/v3/clusters/abc-r2d2/topics/public.hello/records
-7:14PM	INFO	rubin/client.go:84	Record committed	{"status": 200, "offset": 35, "topic": "public.hello", "partition": 0}
+9:49PM	INFO	rubin/main.go:60	Welcome to rubin	{"version": "v0.0.5", "built": "now", "commit": "7759eb6"}
+9:49PM	INFO	rubin/client.go:27	Kafka REST Proxy Client configured	{"endpoint": "https://localhost:443", "useSecret": true}
+9:49PM	INFO	rubin/client.go:53	Push record	{"url": "https://localhost.cloud:443/kafka/v3/clusters/abc-r2d2/topics/public.hello/records"}
+9:49PM	INFO	rubin/client.go:84	Record committed	{"status": "topic", "public.hello": 200, "offset": 43, "partition": 0}
+
 ```
 
 ### Use as docker image
 
 todo
-
-## API stability
-
-The package API for yaml v0 and therefore not yet considered stable as described in [gopkg.in](https://gopkg.in)
 
 ## Development
 
@@ -82,26 +85,40 @@ make all
 This will initialize a git repo, download the dependencies in the latest versions and install all needed tools.
 If needed code generation will be triggered in this target as well.
 
-### Test & lint
+### Other targets
 
-Run linting
-
-```bash
-make lint
+```
+$ make help
 ```
 
-Run tests
+```
+$ make help
+Usage: make <OPTIONS> ... <TARGETS>
 
-```bash
-make test
+Available targets are:
+
+all                  Initializes all tools
+build                Builds all binaries
+ci                   Executes lint and test and generates reports
+clean                Cleans up everything
+coverage             Displays coverage per func on cli
+docker               Builds docker image
+download             Downloads the dependencies
+fmt                  Formats all code with go fmt
+help                 Shows the help
+html-coverage        Displays the coverage results in the browser
+lint                 Lints all code with golangci-lint
+run                  Run the app
+run-help             Run the app and display app helm
+test                 Runs all tests  (with colorized output support if gotest is installed)
+test-build           Tests whether the code compiles
+test-int             Run integration test with tag //go:build integration
+tidy                 Cleans up go.mod and go.sum
 ```
 
-Run integration tests
+### API stability
 
-```bash
-vi pkg/rubin/.integration-test-options.yaml
-make test-int	
-```
+The package API for rubin is still version zero and therefore not yet considered stable as described in [gopkg.in](https://gopkg.in)
 
 ## Credits
 

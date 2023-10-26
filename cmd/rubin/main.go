@@ -57,7 +57,7 @@ func run() error {
 	defer func() {
 		_ = logger.Sync() // flushed any buffered log entries
 	}()
-	logger.Infof("rubin version=%s built=%s commit=%s", version, date, commit)
+	logger.Infow("Welcome to rubin", "version", version, "built", date, "commit", commit)
 
 	var options rubin.Options
 	if err := envconfig.Process(envconfigPrefix, &options); err != nil {
