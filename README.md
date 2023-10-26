@@ -28,8 +28,7 @@ client := rubin.New(&rubin.Options{
 	APIKey: "1234567890",
 	APISecret: "**********",
 })
-topic := "toppig"
-resp, err := client.Produce(context.Background(), topic, "", "hey")
+resp, err := client.Produce(context.Background(), "toppic", "", "hey")
 if err != nil {
 	logger.Errorf("Cannot produce record to %s: %v", topic, err)
 }
