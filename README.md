@@ -2,6 +2,7 @@
 
 [![GoTemplate](https://img.shields.io/badge/go/template-black?logo=go)](https://github.com/SchwarzIT/go-template)
 ![ci-build](https://github.com/tillkuhn/rubin/actions/workflows/main.yml/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tillkuhn/rubin)](https://goreportcard.com/report/github.com/tillkuhn/rubin)
 
 ## Introduction
 
