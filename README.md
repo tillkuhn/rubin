@@ -7,8 +7,8 @@
 
 ## Introduction
 
-A thin wrapper around [Confluent's  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to produce 
-events records for an existing Kafka Topic, using just plain http communication.
+rubin is basically just thin wrapper around [Confluent's  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to produce 
+event records for an existing Kafka Topic, written in Go and using just plain http communication.
 
 ## Why the funky name?
 
