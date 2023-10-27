@@ -27,10 +27,10 @@ Configure Environment
 
 ```
 $ printenv | grep -e ^RUBIN
-RUBIN_REST_ENDPOINT=https://localhost:443
-RUBIN_API_KEY=1234567890
-RUBIN_CLUSTER_ID=abc-r2d2
-RUBIN_API_SECRET=********
+KAFKA_REST_ENDPOINT=https://localhost:443
+KAFKA_API_KEY=1234567890
+KAFKA_CLUSTER_ID=abc-r2d2
+KAFKA_API_SECRET=********
 ```
 
 Run the standalone binary
