@@ -5,6 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/tillkuhn/rubin)](https://goreportcard.com/report/github.com/tillkuhn/rubin)
 [![Go Reference](https://pkg.go.dev/badge/github.com/tillkuhn/rubin.svg)](https://pkg.go.dev/github.com/tillkuhn/rubin)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=tillkuhn_rubin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=tillkuhn_rubin)
+[![Latest Release](https://img.shields.io/github/v/release/tillkuhn/rubin?include_prereleases)](https://github.com/tillkuhn/rubin/releases)
 
 ## Introduction
 
