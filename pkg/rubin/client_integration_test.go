@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 )
 
 const (
@@ -37,9 +38,9 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	// This should succeed
 	cc := New(intOptions)
 	resp, err := cc.Produce(ctx, topic, id, payloadData)
-	assert.Greater(t, resp.Offset, float64(0))
-	assert.Equal(t, topic, resp.TopicName)
 	assert.NoError(t, err)
+	assert.Greater(t, resp.Offset, int32(0))
+	assert.Equal(t, topic, resp.TopicName)
 
 	newCar := struct {
 		Make    string `json:"make"`
@@ -55,11 +56,18 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.ErrorCode)
 	assert.NoError(t, err)
 
-	// This will fail (wrong password
-	cc = New(&Options{intOptions.RestEndpoint, intOptions.ClusterID, "nobody", "failed", false})
+	// This will fail (wrong password)
+	cc = New(&Options{
+		RestEndpoint: intOptions.RestEndpoint,
+		ClusterID:    intOptions.ClusterID,
+		APIKey:       "nobody",
+		APISecret:    "failed",
+		HTTPTimeout:  1 * time.Second,
+		debug:        true,
+	})
 	resp, err = cc.Produce(ctx, topic, id, payloadData)
 	assert.Equal(t, http.StatusUnauthorized, resp.ErrorCode)
-	assert.ErrorContains(t, err, "unexpected status code")
+	assert.ErrorContains(t, err, "unexpected http response")
 	assert.Empty(t, resp.TopicName)
 
 	t.Log("Real Kafka Integration Test is happy")

@@ -14,7 +14,7 @@ type Options struct {
 	// ClusterID of confluent cluster
 	ClusterID   string        `yaml:"clusterID" default:"" required:"false" desc:"Kafka Cluster ID"  split_words:"true"`
 	APIKey      string        `yaml:"apiKey" default:"" required:"false" desc:"Kafka API Key with Producer Privileges"  split_words:"true"`
-	APISecret   string        `yaml:"apiPassword" default:"" required:"false" desc:"Kafka API Secret with Producer Privileges"  split_words:"true"`
+	APISecret   string        `yaml:"apiSecret" default:"" required:"false" desc:"Kafka API Secret with Producer Privileges"  split_words:"true"`
 	HTTPTimeout time.Duration `yaml:"httpTimeout" default:"10s" required:"false" desc:"Timeout for HTTP Client" split_words:"true"`
 	// debug can be only activated from within this package (e.g. for integration testing)
 	debug bool
@@ -27,11 +27,14 @@ type Client struct {
 }
 
 // Response simple wrapper around a Confluent Rest response
+// Check https://github.com/confluentinc/kafka-rest-sdk-go/blob/master/kafkarestv3/docs/ProduceResponse.md
+// https://github.com/confluentinc/kafka-rest-sdk-go/blob/master/kafkarestv3/model_produce_response.go
 type Response struct {
-	ErrorCode   int     `json:"error_code"`
-	Offset      float64 `json:"offset"`
-	TopicName   string  `json:"topic_name"`
-	PartitionID int     `json:"partition_id"`
+	ErrorCode   int        `json:"error_code"`
+	Offset      int32      `json:"offset"`
+	TopicName   string     `json:"topic_name"`
+	PartitionID int32      `json:"partition_id"`
+	Timestamp   *time.Time `json:"timestamp"`
 }
 
 type TopicPayloadElement struct {
@@ -39,6 +42,8 @@ type TopicPayloadElement struct {
 	Data interface{} `json:"data"`
 }
 
+// TopicPayload content for new topic record
+// Check https://github.com/confluentinc/kafka-rest-sdk-go/blob/master/kafkarestv3/docs/ProduceRequest.md
 type TopicPayload struct {
 	Key   TopicPayloadElement `json:"key"`
 	Value TopicPayloadElement `json:"value"`

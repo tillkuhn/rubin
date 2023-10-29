@@ -28,7 +28,7 @@ func TestProduceMessageOK(t *testing.T) {
 	// strings.NewReader("hello world")
 	resp, err := cc.Produce(context.Background(), "public.welcome", "1234", "Hello Hase!")
 	assert.NoError(t, err)
-	assert.Equal(t, float64(42), resp.Offset)
+	assert.Equal(t, int32(42), resp.Offset)
 	assert.Equal(t, http.StatusOK, resp.ErrorCode)
 }
 
