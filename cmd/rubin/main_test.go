@@ -10,6 +10,7 @@ import (
 
 func TestRunMainMessageProducer(t *testing.T) {
 	os.Clearenv()
+	os.Args = []string{"noop", "-topic=hase", "-record=horst", "arg2"}
 	mock := testutil.ServerMock(http.StatusOK)
 	_ = os.Setenv("KAFKA_REST_ENDPOINT", mock.URL)
 	_ = os.Setenv("KAFKA_CLUSTER_ID", testutil.ClusterID)

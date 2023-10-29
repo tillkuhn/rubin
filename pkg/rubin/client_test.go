@@ -24,4 +24,9 @@ func TestProduceMessageOK(t *testing.T) {
 	assert.Equal(t, int32(42), resp.Offset)
 	assert.NotNil(t, resp.Timestamp)
 	assert.Equal(t, http.StatusOK, resp.ErrorCode)
+
+	// test with default timeout and debug = true and empty key
+	cc = New(&Options{srv.URL, testutil.ClusterID, "test.key", "test.pw", 0, true})
+	_, err = cc.Produce(context.Background(), "public.welcome", "", "Hello Hase!")
+	assert.NoError(t, err)
 }

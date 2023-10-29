@@ -42,6 +42,7 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	assert.Greater(t, resp.Offset, int32(0))
 	assert.Equal(t, topic, resp.TopicName)
 
+	// this should also succeed
 	newCar := struct {
 		Make    string `json:"make"`
 		Model   string
