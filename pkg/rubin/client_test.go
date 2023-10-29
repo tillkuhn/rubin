@@ -29,6 +29,7 @@ func TestProduceMessageOK(t *testing.T) {
 	resp, err := cc.Produce(context.Background(), "public.welcome", "1234", "Hello Hase!")
 	assert.NoError(t, err)
 	assert.Equal(t, int32(42), resp.Offset)
+	assert.NotNil(t, resp.Timestamp)
 	assert.Equal(t, http.StatusOK, resp.ErrorCode)
 }
 
