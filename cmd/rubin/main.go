@@ -39,7 +39,6 @@ func run() error {
 	record := flag.String("record", "", "Record to send to the topic")
 	key := flag.String("key", "", "Key for the message (optional, default is generated uuid)")
 	verbosity := flag.String("v", "info", "Verbosity")
-	fmt.Println(os.Args)
 	// if !flag.Parsed() { // avoid, seems to be true when we invoke run() from _test so we can't test args
 	// debug = flag.Bool("debug", false, "log debug")
 	help := flag.Bool("help", false, "Display help")
@@ -74,7 +73,7 @@ func run() error {
 		*key = uuid.New().String()
 		logger.Debugf("Using generated message key %s", *key)
 	}
-	if _, err := client.Produce(context.Background(), *topic, *key, record); err != nil {
+	if _, err := client.Produce(context.Background(), *topic, *key, *record); err != nil {
 		logger.Errorf("Cannot produce record to %s: %v", *topic, err)
 		return err
 	}

@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"time"
 
 	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
@@ -25,7 +24,7 @@ const defaultTimeout = 30 * time.Second
 
 // New returns a new Rubin Client for http interaction
 func New(options *Options) *Client {
-	logger := log.NewAtLevel(os.Getenv("LOG_LEVEL"))
+	logger := log.NewAtLevel(options.LogLevel)
 	logger.Infow("Kafka REST Proxy Client configured",
 		"endpoint", options.RestEndpoint, "useSecret", len(options.APISecret) > 0)
 	if options.HTTPTimeout.Seconds() < 1 {
@@ -42,6 +41,8 @@ func New(options *Options) *Client {
 // Example URL: https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443/kafka/v3/clusters/lkc-gqmo5r/topics/public.welcome/records
 // See also: https://github.com/confluentinc/kafka-rest#produce-records-with-json-data
 // and https://github.com/confluentinc/kafka-rest#produce-records-with-string-data
+// and https://docs.confluent.io/platform/current/kafka-rest/api.html
+// "If your data is JSON, you can use json as the embedded format and embed it directly:"
 func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}) (kafkarestv3.ProduceResponse, error) {
 	defer func() {
 		_ = c.logger.Sync() // flushed any buffered log entries
@@ -50,8 +51,14 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, topic)
 	// payload := NewTopicPayload([]byte(key), data)
 	ts := time.Now()
-	var keyData interface{}                               // this looks stupid, ProduceRequestData.Data expected a pointer to interface{}
-	keyData = b64.StdEncoding.EncodeToString([]byte(key)) // and apparently we can't simply cast string to interface{}
+	var keyData interface{}
+	// this looks stupid, ProduceRequestData.Data expected a pointer to interface{}
+	// and apparently we can't simply cast string to interface{}
+	if len(key) > 0 {
+		keyData = b64.StdEncoding.EncodeToString([]byte(key))
+	}
+	// json.Valid([
+	valueType, valueData := c.transformPayload(data)
 	payload := kafkarestv3.ProduceRequest{
 		// PartitionId: nil, // not needed
 		Headers: nil,
@@ -60,8 +67,8 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 			Data: &keyData,
 		},
 		Value: &kafkarestv3.ProduceRequestData{
-			Type: "JSON",
-			Data: &data,
+			Type: valueType, // String or JSON
+			Data: &valueData,
 		},
 		Timestamp: &ts,
 	}
@@ -81,10 +88,10 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	if err != nil {
 		return kResp, err
 	}
-	if c.options.DumpMessages {
-		resDump, _ := httputil.DumpResponse(res, true)
-		fmt.Printf("Dump HTTP-Response:\n%s\n\n", string(resDump)) // only for debug
-	}
+	// if c.options.DumpMessages {
+	//	resDump, _ := httputil.DumpResponse(res, true)
+	//	fmt.Printf("Dump HTTP-Response:\n%s", string(resDump)) // only for debug
+	//}
 
 	defer c.closeSilently(res.Body)
 	body, err := io.ReadAll(res.Body)
@@ -108,6 +115,32 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	//}
 	c.logger.Infow("Record committed", "key", kResp.Key, "topic", kResp.TopicName, "offset", kResp.Offset, "partition", kResp.PartitionId)
 	return kResp, nil
+}
+
+// transformPayload inspects the payload, determines the valueType and handles JSON Strings
+func (c *Client) transformPayload(data interface{}) (valueType string, valueData interface{}) {
+	s, isString := data.(string)
+	// .logger.Infof("Interface Data: %T", data) // returns *string, string or rubin.Event ...
+	switch {
+	case isString && json.Valid([]byte(s)):
+		c.logger.Debugf("Record value is a string that contains valid JSON, using unmarshal")
+		valueType = "JSON"
+		err := json.Unmarshal([]byte(s), &valueData)
+		if err != nil {
+			c.logger.Errorf("%v", err)
+		}
+	case isString:
+		valueType = "STRING"
+		// "value":{"type":"STRING","data":"Hello String!"}
+		c.logger.Debugf("Record value is a simple string")
+		valueData = data
+	default:
+		valueType = "JSON"
+		// real json "value":{"type":"JSON","data":{"action":"update/event",
+		c.logger.Debug("Record value will be marshalled as embedded struct in ProduceRequest")
+		valueData = data
+	}
+	return valueType, valueData
 }
 
 // CloseSilently avoids "Unhandled error warnings if you use defer to close Resources

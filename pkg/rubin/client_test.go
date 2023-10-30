@@ -2,6 +2,7 @@ package rubin
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -15,18 +16,44 @@ func init() {
 }
 
 func TestProduceMessageOK(t *testing.T) {
+	ctx := context.Background()
 	srv := testutil.ServerMock(200) // "https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443"
 	defer srv.Close()
-	cc := New(&Options{srv.URL, testutil.ClusterID, "test.key", "test.pw", 5 * time.Second, false})
+	opts := &Options{
+		RestEndpoint: srv.URL, ClusterID: testutil.ClusterID, APIKey: "test.key", APISecret: "test.pw",
+		HTTPTimeout: 5 * time.Second, LogLevel: "debug",
+	}
+	cc := New(opts)
 	// strings.NewReader("hello world")
-	resp, err := cc.Produce(context.Background(), "public.welcome", "1234", "Hello Hase!")
+	resp, err := cc.Produce(ctx, "public.welcome", "1234", "Hello Hase!")
 	assert.NoError(t, err)
 	assert.Equal(t, int32(42), resp.Offset)
 	assert.NotNil(t, resp.Timestamp)
 	// assert.Equal(t, http.StatusOK, resp.ErrorCode)
 
 	// test with default timeout and debug = true and empty key
-	cc = New(&Options{srv.URL, testutil.ClusterID, "test.key", "test.pw", 0, true})
-	_, err = cc.Produce(context.Background(), "public.welcome", "", "Hello Hase!")
+	opts.HTTPTimeout = 0
+	cc = New(opts)
+	_, err = cc.Produce(ctx, "public.welcome", "", "Hello Hase!") // Simple String
 	assert.NoError(t, err)
+	_, err = cc.Produce(ctx, "public.welcome", "", `{"example": 1}`) // valid json
+	assert.NoError(t, err)
+
+	event := Event{
+		Action:  "update/event",
+		Message: "go with me",
+		Time:    time.Now(),
+		Source:  os.Args[0],
+	}
+	_, err = cc.Produce(ctx, "public.welcome", "abc/123", event) // struct that can be unmarshalled
+	assert.NoError(t, err)
+
+	// test without auth (mock should return 401 is no user and pw and submitted in auth header
+	opts.APIKey = ""
+	opts.APISecret = ""
+	opts.DumpMessages = true
+
+	cc = New(opts)
+	_, err = cc.Produce(ctx, "public.welcome", "", "Hello Hase!") // Simple String
+	assert.ErrorContains(t, err, "unexpected http response status code 401")
 }

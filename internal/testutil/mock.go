@@ -26,6 +26,14 @@ func ServerMock(responseCode int) *httptest.Server {
 func mockHandler(responseFile string) func(w http.ResponseWriter, _ *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		respBytes, err := os.ReadFile(responseFile)
+		u, p, _ := req.BasicAuth()
+		// fmt.Printf("U=%s p=%s", u, p)
+		// no username and no password? go away
+		if u == "" && p == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		if err != nil {
 			panic(err.Error())
 		}

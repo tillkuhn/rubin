@@ -13,6 +13,7 @@ export KAFKA_CLUSTER_ID ?= $(shell test -f pkg/rubin/.test-int-options.yaml && g
 export KAFKA_API_KEY ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep api_key pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
 export KAFKA_API_SECRET ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep api_secret pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
 export KAFKA_DUMP_MESSAGES ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep dump_messages pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
+export KAFKA_LOG_LEVEL ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep log_level pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
 
 all: git-hooks  tidy ## Initializes all tools
 
@@ -34,6 +35,8 @@ fmt: ## Formats all code with go fmt
 run: fmt ## Run the app
 	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
 	./cmd/rubin/main.go -v debug -topic public.hello -record '{"message":"Hello Franz!"}'
+	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
+	./cmd/rubin/main.go -v debug -topic public.hello -record 'Hello String!'
 
 run-help: fmt ## Run the app and display app helm
 	@go run ./cmd/rubin/main.go -help
