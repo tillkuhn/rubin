@@ -97,6 +97,13 @@ ci: lint-reports test-reports ## Executes lint and test and generates reports
 update: ## Update all go dependencies
 	@go get -u all
 
+.PHONY: patch
+patch: ## Create Patch Release
+	@if hash semtag 2>/dev/null; then \
+		semtag final -s patch; \
+  	else echo "This target requires semtag, download from https://github.com/nico2sh/semtag"; fi
+
+.PHONY: help
 help: ## Shows the help
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
 	@echo ''
