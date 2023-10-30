@@ -48,7 +48,23 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	}()
 	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.APIKey, c.options.APISecret)))
 	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, topic)
-	payload := NewTopicPayload([]byte(key), data)
+	// payload := NewTopicPayload([]byte(key), data)
+	ts := time.Now()
+	var keyData interface{}                               // this looks stupid, ProduceRequestData.Data expected a pointer to interface{}
+	keyData = b64.StdEncoding.EncodeToString([]byte(key)) // and apparently we can't simply cast string to interface{}
+	payload := kafkarestv3.ProduceRequest{
+		// PartitionId: nil, // not needed
+		Headers: nil,
+		Key: &kafkarestv3.ProduceRequestData{
+			Type: "BINARY",
+			Data: &keyData,
+		},
+		Value: &kafkarestv3.ProduceRequestData{
+			Type: "JSON",
+			Data: &data,
+		},
+		Timestamp: &ts,
+	}
 	payloadJSON, _ := json.Marshal(payload)
 	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(payloadJSON))
 	req.Header.Set("Content-Type", "application/json") // don't add ;charset=UTF8 or server will complain
