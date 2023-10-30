@@ -7,8 +7,6 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/google/uuid"
-
 	"github.com/kelseyhightower/envconfig"
 	"github.com/tillkuhn/rubin/pkg/rubin"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -70,10 +68,6 @@ func run() error {
 	}
 	client := rubin.New(&options)
 
-	if *key == "" {
-		*key = uuid.New().String()
-		logger.Debugf("Using generated message key %s", *key)
-	}
 	if _, err := client.Produce(context.Background(), *topic, *key, *record); err != nil {
 		logger.Errorf("Cannot produce record to %s: %v", *topic, err)
 		return err

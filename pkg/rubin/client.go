@@ -13,6 +13,8 @@ import (
 	"net/http/httputil"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
 
 	"github.com/pkg/errors"
@@ -21,6 +23,7 @@ import (
 )
 
 const defaultTimeout = 30 * time.Second
+const EventVersion = "1.0"
 
 // New returns a new Rubin Client for http interaction
 func New(options *Options) *Client {
@@ -47,10 +50,14 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	defer func() {
 		_ = c.logger.Sync() // flushed any buffered log entries
 	}()
+	if key == "" {
+		key = uuid.New().String()
+		c.logger.Debugf("Using generated message key %s", key)
+	}
 	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.APIKey, c.options.APISecret)))
 	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, topic)
 	// payload := NewTopicPayload([]byte(key), data)
-	ts := time.Now()
+	ts := time.Now().Round(time.Second) // make sure we round to .SSS
 	var keyData interface{}
 	// this looks stupid, ProduceRequestData.Data expected a pointer to interface{}
 	// and apparently we can't simply cast string to interface{}
@@ -61,7 +68,7 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	valueType, valueData := c.transformPayload(data)
 	payload := kafkarestv3.ProduceRequest{
 		// PartitionId: nil, // not needed
-		Headers: nil,
+		Headers: c.defaultHeaders(key, "rubin"),
 		Key: &kafkarestv3.ProduceRequestData{
 			Type: "BINARY",
 			Data: &keyData,
@@ -88,10 +95,10 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	if err != nil {
 		return kResp, err
 	}
-	// if c.options.DumpMessages {
-	//	resDump, _ := httputil.DumpResponse(res, true)
-	//	fmt.Printf("Dump HTTP-Response:\n%s", string(resDump)) // only for debug
-	//}
+	if c.options.DumpMessages {
+		resDump, _ := httputil.DumpResponse(res, true)
+		fmt.Printf("Dump HTTP-Response:\n%s", string(resDump)) // only for debug
+	}
 
 	defer c.closeSilently(res.Body)
 	body, err := io.ReadAll(res.Body)
@@ -141,6 +148,27 @@ func (c *Client) transformPayload(data interface{}) (valueType string, valueData
 		valueData = data
 	}
 	return valueType, valueData
+}
+
+// defaultHeaders returns a set of standard kafka message headers
+func (c *Client) defaultHeaders(messageID string, clientID string) []kafkarestv3.ProduceRequestHeader {
+	schema := b64.StdEncoding.EncodeToString([]byte("event@" + EventVersion))
+	messageID = b64.StdEncoding.EncodeToString([]byte(messageID))
+	clientID = b64.StdEncoding.EncodeToString([]byte(clientID))
+	return []kafkarestv3.ProduceRequestHeader{
+		{
+			Name:  "messageId",
+			Value: &messageID,
+		},
+		{
+			Name:  "schema",
+			Value: &schema,
+		},
+		{
+			Name:  "clientId",
+			Value: &clientID,
+		},
+	}
 }
 
 // CloseSilently avoids "Unhandled error warnings if you use defer to close Resources

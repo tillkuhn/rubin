@@ -1,0 +1,4 @@
+{
+  "error_code": 400,
+  "message": "Cannot deserialize value of type `byte[]` from String \"b662-4f62-adb7-5666d66d30ec\": Failed to decode VALUE_STRING as base64 (MIME-NO-LINEFEEDS): Illegal character '-' (code 0x2d) in base64 content"
+}

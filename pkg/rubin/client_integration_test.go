@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"os"
+	"path"
 	"testing"
 	"time"
 )
@@ -50,9 +51,19 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 		Model:   "Taurus",
 		Mileage: 200000,
 	}
+
 	resp, err = cc.Produce(ctx, topic, "my-car-123", newCar)
 	//t.Log(string(resp))
 	// assert.Equal(t, http.StatusOK, resp.ErrorCode)
+	assert.NoError(t, err)
+
+	event := Event{
+		Action:  "integration/test",
+		Message: "go with me",
+		Time:    time.Now().Round(time.Second), // make sure we round to .SSS
+		Source:  path.Base(os.Args[0]),
+	}
+	resp, err = cc.Produce(ctx, topic, "event-123", event)
 	assert.NoError(t, err)
 
 	// This will fail (wrong password)

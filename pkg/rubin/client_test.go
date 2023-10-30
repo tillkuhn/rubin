@@ -20,8 +20,11 @@ func TestProduceMessageOK(t *testing.T) {
 	srv := testutil.ServerMock(200) // "https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443"
 	defer srv.Close()
 	opts := &Options{
-		RestEndpoint: srv.URL, ClusterID: testutil.ClusterID, APIKey: "test.key", APISecret: "test.pw",
-		HTTPTimeout: 5 * time.Second, LogLevel: "debug",
+		RestEndpoint: srv.URL, ClusterID: testutil.ClusterID,
+		APIKey: "test.key", APISecret: "test.pw",
+		HTTPTimeout:  5 * time.Second,
+		LogLevel:     "debug",
+		DumpMessages: true,
 	}
 	cc := New(opts)
 	// strings.NewReader("hello world")
@@ -42,9 +45,10 @@ func TestProduceMessageOK(t *testing.T) {
 	event := Event{
 		Action:  "update/event",
 		Message: "go with me",
-		Time:    time.Now(),
+		Time:    time.Now().Round(time.Second), // make sure we round to .SSS
 		Source:  os.Args[0],
 	}
+
 	_, err = cc.Produce(ctx, "public.welcome", "abc/123", event) // struct that can be unmarshalled
 	assert.NoError(t, err)
 
