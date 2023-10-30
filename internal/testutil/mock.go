@@ -10,12 +10,13 @@ import (
 const (
 	sampleDir = "../../testdata"
 	ClusterID = "abc-r2d2"
+	Topic     = "public.welcome"
 )
 
 func ServerMock(responseCode int) *httptest.Server {
 	handler := http.NewServeMux()
 	handler.HandleFunc(
-		fmt.Sprintf("/kafka/v3/clusters/%s/topics/public.welcome/records", ClusterID),
+		fmt.Sprintf("/kafka/v3/clusters/%s/topics/%s/records", ClusterID, Topic),
 		mockHandler(fmt.Sprintf("%s/response-%d.json", sampleDir, responseCode)),
 	)
 	srv := httptest.NewServer(handler)

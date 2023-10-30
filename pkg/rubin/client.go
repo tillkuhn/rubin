@@ -56,18 +56,23 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 
 	c.logger.Infow("Push record", "url", url)
 	httpClient := &http.Client{Timeout: c.options.HTTPTimeout}
-	if c.options.debug {
+	if c.options.DumpMessages {
 		reqDump, _ := httputil.DumpRequestOut(req, true)
-		fmt.Printf("REQUEST:\n%s", string(reqDump)) // only for debug
+		fmt.Printf("Dump HTTP-Request:\n%s\n\n", string(reqDump)) // only for debug
 	}
 	var kResp kafkarestv3.ProduceResponse
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return kResp, err
 	}
+	if c.options.DumpMessages {
+		resDump, _ := httputil.DumpResponse(res, true)
+		fmt.Printf("Dump HTTP-Response:\n%s\n\n", string(resDump)) // only for debug
+	}
 
 	defer c.closeSilently(res.Body)
 	body, err := io.ReadAll(res.Body)
+
 	// kResp. = res.StatusCode
 	if err != nil {
 		return kResp, err

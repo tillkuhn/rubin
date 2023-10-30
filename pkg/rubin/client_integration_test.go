@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	intOptionsFile = ".integration-test-options.yaml"
+	intOptionsFile = ".test-int-options.yaml"
 )
 
 func TestProduceMessageRealConfluentAPI(t *testing.T) {
@@ -27,7 +27,6 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	id := uuid.New().String()
 
 	intOptions, err := initOptions()
-	intOptions.debug = true
 	if err != nil {
 		t.Log(fmt.Sprintf("This test requires gitignored file %s in package directory with confluent producer api token", intOptionsFile))
 		t.FailNow()
@@ -63,7 +62,7 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 		APIKey:       "nobody",
 		APISecret:    "failed",
 		HTTPTimeout:  1 * time.Second,
-		debug:        true,
+		DumpMessages: true,
 	})
 	resp, err = cc.Produce(ctx, topic, id, payloadData)
 	// assert.Equal(t, http.StatusUnauthorized, resp.ErrorCode)
