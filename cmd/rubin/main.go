@@ -18,6 +18,8 @@ import (
 
 const envconfigPrefix = "kafka"
 
+// useful variables to pass with ldflags during build, for example
+// go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'"
 var (
 	version = "latest"
 	date    = "now"
@@ -40,7 +42,6 @@ func run() error {
 	key := flag.String("key", "", "Key for the message (optional, default is generated uuid)")
 	verbosity := flag.String("v", "info", "Verbosity")
 	// if !flag.Parsed() { // avoid, seems to be true when we invoke run() from _test so we can't test args
-	// debug = flag.Bool("debug", false, "log debug")
 	help := flag.Bool("help", false, "Display help")
 	flag.Parse()
 	if *help {

@@ -32,11 +32,9 @@ tidy: ## Cleans up go.mod and go.sum
 fmt: ## Formats all code with go fmt
 	@go fmt ./...
 
-run: fmt ## Run the app
+run: fmt ## Run the app with JSON String Message
 	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
 	./cmd/rubin/main.go -v debug -topic public.hello -record '{"message":"Hello Franz!"}'
-	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
-	./cmd/rubin/main.go -v debug -topic public.hello -record 'Hello String!'
 
 run-help: fmt ## Run the app and display app helm
 	@go run ./cmd/rubin/main.go -help
@@ -95,6 +93,9 @@ docker: ## Builds docker image
 	docker buildx build -t $(DOCKER_REPO):$(DOCKER_TAG) .
 
 ci: lint-reports test-reports ## Executes lint and test and generates reports
+
+update: ## Update all go dependencies
+	@go get -u all
 
 help: ## Shows the help
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'

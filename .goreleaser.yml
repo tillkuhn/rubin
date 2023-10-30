@@ -11,6 +11,7 @@ before:
 gomod:
   proxy: true
 
+# https://goreleaser.com/customization/builds/
 builds:
   - env:
       - CGO_ENABLED=0
@@ -24,12 +25,22 @@ builds:
     # (...) if we only have GOARCH=arm64, we do not need to set a variable GOARM
     # https://github.com/goreleaser/goreleaser/issues/36
     # goarm: ["6", "7"]
-    # https://goreleaser.com/cookbooks/using-main.version/
-    # By default, GoReleaser will set the following 3 ldflags main.version, main.commit, main.date
-    ldflags:
+
+    # Custom ldflags.
+    #
+    # Default: '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'
+    # see also https://goreleaser.com/cookbooks/using-main.version/
+    #
+    #ldflags:
       #- -s -w -X github.com/tillkuhn/rubin/cmd.Version={{.Env.RUBIN_VERSION}} -X github.com/tillkuhn/rubin/cmd.Commit={{.Env.RUBIN_COMMIT}} -X github.com/tillkuhn/rubin/cmd.BuildDate={{.Env.rubin_BUILD_DATE}}
-      - -s -w
+     # - -s -w
+
+    # Path to main.go file or main package.
+    # Notice: when used with `gomod.proxy`, this must be a package.
+    #
+    # Default is `.`.
     main: ./cmd/rubin
+
 archives:
   - format: zip
     files:
