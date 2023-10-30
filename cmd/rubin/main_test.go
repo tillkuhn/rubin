@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/tillkuhn/rubin/internal/testutil"
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/tillkuhn/rubin/internal/testutil"
 )
 
 func TestRunMainMessageProducer(t *testing.T) {

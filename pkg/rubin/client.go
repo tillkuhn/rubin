@@ -14,6 +14,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
+
 	"github.com/pkg/errors"
 
 	"github.com/tillkuhn/rubin/internal/log"
@@ -38,7 +40,9 @@ func New(options *Options) *Client {
 
 // Produce produces records to the given topic, returning delivery reports for each record produced.
 // Example URL: https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443/kafka/v3/clusters/lkc-gqmo5r/topics/public.welcome/records
-func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}) (Response, error) {
+// See also: https://github.com/confluentinc/kafka-rest#produce-records-with-json-data
+// and https://github.com/confluentinc/kafka-rest#produce-records-with-string-data
+func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}) (kafkarestv3.ProduceResponse, error) {
 	defer func() {
 		_ = c.logger.Sync() // flushed any buffered log entries
 	}()
@@ -56,7 +60,7 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 		reqDump, _ := httputil.DumpRequestOut(req, true)
 		fmt.Printf("REQUEST:\n%s", string(reqDump)) // only for debug
 	}
-	var kResp Response
+	var kResp kafkarestv3.ProduceResponse
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return kResp, err
@@ -64,7 +68,7 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 
 	defer c.closeSilently(res.Body)
 	body, err := io.ReadAll(res.Body)
-	kResp.ErrorCode = res.StatusCode
+	// kResp. = res.StatusCode
 	if err != nil {
 		return kResp, err
 	}
@@ -78,10 +82,10 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	if err := json.Unmarshal(body, &kResp); err != nil {
 		return kResp, errors.Wrap(err, fmt.Sprintf("unexpected topic api response: %s", string(body)))
 	}
-	if kResp.ErrorCode != http.StatusOK {
-		return kResp, errors.Wrap(responseError, fmt.Sprintf("unexpected kafka response error code %d for %s", kResp.ErrorCode, url))
-	}
-	c.logger.Infow("Record committed", "status", "topic", kResp.TopicName, kResp.ErrorCode, "offset", kResp.Offset, "partition", kResp.PartitionID)
+	// if kResp.ErrorCode != http.StatusOK {
+	//	return kResp, errors.Wrap(responseError, fmt.Sprintf("unexpected kafka response error code %d for %s", kResp.ErrorCode, url))
+	//}
+	c.logger.Infow("Record committed", "key", kResp.Key, "topic", kResp.TopicName, "offset", kResp.Offset, "partition", kResp.PartitionId)
 	return kResp, nil
 }
 

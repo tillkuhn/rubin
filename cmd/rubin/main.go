@@ -7,6 +7,8 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/google/uuid"
+
 	"github.com/kelseyhightower/envconfig"
 	"github.com/tillkuhn/rubin/pkg/rubin"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -35,6 +37,8 @@ func main() {
 func run() error {
 	topic := flag.String("topic", "", "Kafka topic name to push records")
 	record := flag.String("record", "", "Record to send to the topic")
+	key := flag.String("key", "", "Key for the message (optional, default is generated uuid)")
+	verbosity := flag.String("v", "info", "Verbosity")
 	if !flag.Parsed() { // or we get panic if configureEnvironment is called twice
 		// debug = flag.Bool("debug", false, "log debug")
 		help := flag.Bool("help", false, "Display help")
@@ -53,7 +57,7 @@ func run() error {
 			return nil
 		}
 	}
-	logger := log.NewAtLevel(os.Getenv("LOG_LEVEL"))
+	logger := log.NewAtLevel(*verbosity)
 	defer func() {
 		_ = logger.Sync() // flushed any buffered log entries
 	}()
@@ -66,7 +70,11 @@ func run() error {
 	}
 	client := rubin.New(&options)
 
-	if _, err := client.Produce(context.Background(), *topic, "", record); err != nil {
+	if *key == "" {
+		*key = uuid.New().String()
+		logger.Debugf("Using generated message key %s", *key)
+	}
+	if _, err := client.Produce(context.Background(), *topic, *key, record); err != nil {
 		logger.Errorf("Cannot produce record to %s: %v", *topic, err)
 		return err
 	}
