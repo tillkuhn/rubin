@@ -21,12 +21,15 @@ const (
 )
 
 // useful variables to pass with ldflags during build, for example
-// go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'"
-var (
-	version = "latest"
-	date    = "now"
-	commit  = ""
+// e.g. go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'"
+// Default: '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'
+// see also https://goreleaser.com/cookbooks/using-main.version/
 
+var (
+	version   = "latest"
+	date      = "now"
+	commit    = ""
+	builtBy   = "go"
 	errClient = errors.New("client error") // used to wrap fine-grained errors
 )
 
@@ -35,7 +38,7 @@ func main() {
 	nopLog := func(string, ...interface{}) {}
 	_, _ = maxprocs.Set(maxprocs.Logger(nopLog))
 
-	fmt.Printf("Welcome to %s %s built %s (%s)\n\n", appName, version, date, commit)
+	fmt.Printf("Welcome to %s %s built %s by %s (%s)\n\n", appName, version, date, builtBy, commit)
 	if err := run(); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

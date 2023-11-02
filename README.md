@@ -121,10 +121,7 @@ If needed code generation will be triggered in this target as well.
 
 ```
 $ make help
-```
 
-```
-$ make help
 Usage: make <OPTIONS> ... <TARGETS>
 
 Available targets are:
