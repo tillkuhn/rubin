@@ -92,7 +92,11 @@ resp, err := client.Produce(context.Background(), "toppic", "", "Hello there!)
 
 ### Use as docker image
 
-todo
+Released vaultpal versions are build for multiple architectures and pushed to the public GitHub Container Registry (https://ghcr.io).
+
+```
+docker run --rm ghcr.io/tillkuhn/rubin:v0.1.2 -help
+```
 
 ## Development
 

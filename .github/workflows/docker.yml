@@ -72,9 +72,10 @@ jobs:
           # provenance? See GitHub Action produces unknown architecture and OS: https://github.com/docker/build-push-action/issues/820
           provenance: false
           build-args: |
-            VAULTPAL_COMMIT=${{ env.VAULTPAL_COMMIT }}
-            VAULTPAL_VERSION=${{ env.VAULTPAL_VERSION }}
-            VAULTPAL_BUILD_DATE=${{ env.VAULTPAL_BUILD_DATE }}
+            APP_COMMIT=${{ env.APP_COMMIT }}
+            APP_VERSION=${{ env.APP_VERSION }}
+            APP_DATE=${{ env.APP_DATE }}
+            APP_BUILT_BY=${{ env.APP_BUILT_BY }}
           # capture output for export and upload image digests
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
       -
