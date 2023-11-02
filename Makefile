@@ -6,6 +6,10 @@ GOLANGCI_VERSION = 1.55.1
 DOCKER_REPO = rubin
 DOCKER_TAG = latest
 
+# defaults for run targets, to overwrite use
+# TOPIC="something.else" make run
+TOPIC ?= "public.hello"
+
 # customization
 .DEFAULT_GOAL = help
 export KAFKA_REST_ENDPOINT ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep rest_endpoint pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "https://localhost:443")
@@ -33,8 +37,8 @@ fmt: ## Formats all code with go fmt
 	@go fmt ./...
 
 run: fmt ## Run the app with JSON String Message
-	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
-	./cmd/rubin/main.go -v debug -topic public.hello -record '{"message":"Hello Franz!"}'
+	go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
+	./cmd/rubin/main.go -v debug -topic $(TOPIC) -record '{"message":"Hello Franz!"}'
 
 run-help: fmt ## Run the app and display app helm
 	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" ./cmd/rubin/main.go -help
@@ -76,7 +80,7 @@ coverage: out/report.json ## Displays coverage per func on cli
 	go tool cover -func=out/cover.out
 	@go tool cover -func cover.out | grep "total:"
 
-html-coverage: out/report.json ## Displays the coverage results in the browser
+coverage-html: out/report.json ## Displays the coverage results in the browser
 	@echo Creating HTML coverage report
 	go tool cover -html=out/cover.out
 

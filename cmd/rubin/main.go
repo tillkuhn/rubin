@@ -5,13 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
+
+	"github.com/pkg/errors"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/tillkuhn/rubin/pkg/rubin"
 	"go.uber.org/automaxprocs/maxprocs"
-
-	"github.com/tillkuhn/rubin/internal/log"
 )
 
 const (
@@ -25,19 +26,24 @@ var (
 	version = "latest"
 	date    = "now"
 	commit  = ""
+
+	errClient = errors.New("client error") // used to wrap fine-grained errors
 )
 
 func main() {
 	// Disable automaxprocs log see https://github.com/uber-go/automaxprocs/issues/18
 	nopLog := func(string, ...interface{}) {}
 	_, _ = maxprocs.Set(maxprocs.Logger(nopLog))
+
+	fmt.Printf("Welcome to %s %s built %s (%s)\n\n", appName, version, date, commit)
 	if err := run(); err != nil {
-		// _, _ = fmt.Fprintf(os.Stderr, "an error occurred: %s\n", err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
 func run() error {
+	// Parse cli args
 	topic := flag.String("topic", "", "Kafka topic name to push records")
 	record := flag.String("record", "", "Record to send to the topic")
 	key := flag.String("key", "", "Key for the message (optional, default is generated uuid)")
@@ -49,35 +55,35 @@ func run() error {
 		showHelp()
 		return nil
 	}
-	logger := log.NewAtLevel(*verbosity)
-	defer func() {
-		_ = logger.Sync() // flushed any buffered log entries
-	}()
-	logger.Infow("Welcome to rubin", "version", version, "built", date, "commit", commit)
+
+	// Validate mandatory args
+	if strings.TrimSpace(*topic) == "" {
+		return errors.Wrap(errClient, "kafka topic must not be empty")
+	}
+	// Validate mandatory args
+	if strings.TrimSpace(*record) == "" {
+		return errors.Wrap(errClient, "message record must not be empty")
+	}
 
 	var options rubin.Options
 	if err := envconfig.Process(envconfigPrefix, &options); err != nil {
-		logger.Errorf("Cannot process environment config: %v", err)
 		return err
 	}
+	options.LogLevel = *verbosity
 	client := rubin.New(&options)
 
 	if _, err := client.Produce(context.Background(), *topic, *key, *record); err != nil {
-		logger.Errorf("Cannot produce record to %s: %v", *topic, err)
 		return err
 	}
 	return nil
 }
 
 func showHelp() {
-	fmt.Printf("Welcome to %s %s built %s (%s)\n\n", appName, version, date, commit)
-
 	usagePadding := 4
 	tabs := tabwriter.NewWriter(os.Stdout, 1, 0, usagePadding, ' ', 0)
 	_ = envconfig.Usagef(envconfigPrefix, &rubin.Options{}, tabs, envconfig.DefaultTableFormat)
 	_ = tabs.Flush()
-	// flag.Usage() // https://stackoverflow.com/a/23726033/4292075
-
+	// use below approach instead of flag.Usage() for customized output: https://stackoverflow.com/a/23726033/4292075
 	fmt.Println("\nIn addition,the following CLI arguments")
 	flag.PrintDefaults()
 	fmt.Println()

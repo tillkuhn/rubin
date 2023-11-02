@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"net/http"
 	"os"
 	"testing"
@@ -19,4 +20,33 @@ func TestRunMainMessageProducer(t *testing.T) {
 	_ = os.Setenv("KAFKA_API_SECRET", "friedrich")
 	err := run()
 	assert.NoError(t, err)
+}
+
+func TestHelp(t *testing.T) {
+	resetEnvAndFlags()
+	os.Args = []string{"noop", "-help"}
+	err := run()
+	assert.NoError(t, err)
+}
+
+func TestEmptyTopic(t *testing.T) {
+	resetEnvAndFlags()
+	os.Args = []string{"noop", "-topic", ""}
+	err := run()
+	assert.ErrorContains(t, err, "topic must not be empty")
+}
+
+func TestEmptyRecord(t *testing.T) {
+	resetEnvAndFlags()
+	os.Args = []string{"noop", "-topic", "hase", "-record", ""}
+	err := run()
+	assert.ErrorContains(t, err, "record must not be empty")
+}
+
+func resetEnvAndFlags() {
+	os.Clearenv()
+	// How to unset flags Visited on command line in GoLang for Tests
+	// https://stackoverflow.com/a/57972717/4292075
+	// Otherwise you get "tmp/GoLand/___main_test_go.test flag redefined: topic"
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError) // flags are now reset
 }
