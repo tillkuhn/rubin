@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Install and test rubin
         run: |
-          curl -LsSo {{ runner.temp }}/rubin.zip $(curl -LsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
-          unzip {{ runner.temp }}/rubin.zip -d {{ runner.temp }}
-          chmod u+g {{ runner.temp }}/rubin
-          {{ runner.temp }}/rubin -help
+          curl -LsSo ${{ runner.temp }}/rubin.zip $(curl -LsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
+          unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }}
+          chmod u+g ${{ runner.temp }}/rubin
+          ${{ runner.temp }}/rubin -help
