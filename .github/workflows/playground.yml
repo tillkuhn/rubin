@@ -19,3 +19,12 @@ jobs:
           unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }}
           chmod u+g ${{ runner.temp }}/rubin
           ${{ runner.temp }}/rubin -help
+      - name: Test Kafka Messaging
+        run: |
+          ${{ runner.temp }}/rubin -topic "$KAFKA_TOPIC" -record "{\"action\":\"deploy-api\",\"workflow\":\"$GITHUB_WORKFLOW\"}"
+        env:
+          # shared with HCP Vault
+          KAFKA_REST_ENDPOINT: ${{ secrets.KAFKA_REST_ENDPOINT }}
+          KAFKA_CLUSTER_ID: ${{ secrets.KAFKA_CLUSTER_ID }}
+          KAFKA_PRODUCER_API_KEY: ${{ secrets.KAFKA_PRODUCER_API_KEY }}
+          KAFKA_PRODUCER_API_SECRET: ${{ secrets.KAFKA_PRODUCER_API_SECRET }}
