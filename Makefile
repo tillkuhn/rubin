@@ -14,8 +14,8 @@ TOPIC ?= "public.hello"
 .DEFAULT_GOAL = help
 export KAFKA_REST_ENDPOINT ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep rest_endpoint pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "https://localhost:443")
 export KAFKA_CLUSTER_ID ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep cluster_id pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
-export KAFKA_API_KEY ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep api_key pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
-export KAFKA_API_SECRET ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep api_secret pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
+export KAFKA_PRODUCER_API_KEY ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep api_key pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
+export KAFKA_PRODUCER_API_SECRET ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep api_secret pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
 export KAFKA_DUMP_MESSAGES ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep dump_messages pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
 export KAFKA_LOG_LEVEL ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep log_level pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
 
