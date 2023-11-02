@@ -9,7 +9,7 @@
 
 ## Introduction
 
-*rubin* is basically a thin wrapper around [Confluent's  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to produce 
+*rubin* is basically a thin wrapper around the [Confluent  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to produce 
 event records for an existing Kafka Topic. It's written in Go and uses just plain http communication, a couple of environment variables and CLI switches.
 
 ## Why the funky name?
@@ -28,9 +28,9 @@ Configure Environment
 ```
 $ printenv | grep -e ^RUBIN
 KAFKA_REST_ENDPOINT=https://localhost:443
-KAFKA_API_KEY=1234567890
+KAFKA_PRODUCER_API_KEY=1234567890
 KAFKA_CLUSTER_ID=abc-r2d2
-KAFKA_API_SECRET=********
+KAFKA_PRODUCER_API_SECRET=********
 ```
 
 Run the standalone binary
@@ -42,10 +42,40 @@ $ rubin -topic public.hello -record "Hello Franz!"
 9:49PM	INFO	rubin/client.go:27	Kafka REST Proxy Client configured  {"endpoint": "https://localhost:443", "useSecret": true}
 9:49PM	INFO	rubin/client.go:53	Push record  {"url": "https://localhost.cloud:443/kafka/v3/clusters/abc-r2d2/topics/public.hello/records"}
 9:49PM	INFO	rubin/client.go:84	Record committed  {"status": "topic", "public.hello": 200, "offset": 43, "partition": 0}
+```
+
+Get Help on CLI arguments and environment configuration
 
 ```
-### Use as library in external application
+$ rubin -help
+Welcome to rubin v0.0.10 built now (b616ac2)
 
+This application is configured via the environment. The following environment
+variables can be used:
+
+KEY                          TYPE             DEFAULT    REQUIRED    DESCRIPTION
+KAFKA_REST_ENDPOINT          String                      false       Kafka REST Proxy Endpoint
+KAFKA_CLUSTER_ID             String                      false       Kafka Cluster ID
+KAFKA_PRODUCER_API_KEY       String                      false       Kafka API Key with Producer Privileges
+KAFKA_PRODUCER_API_SECRET    String                      false       Kafka API Secret with Producer Privileges
+KAFKA_HTTP_TIMEOUT           Duration         10s        false       Timeout for HTTP Client
+KAFKA_DUMP_MESSAGES          True or False    false      false       Print http request/response to stdout
+KAFKA_LOG_LEVEL              String           info       false       Min LogLevel debug,info,warn,error
+
+In addition,the following CLI arguments
+  -help
+    	Display help
+  -key string
+    	Key for the message (optional, default is generated uuid)
+  -record string
+    	Record to send to the topic
+  -topic string
+    	Kafka topic name to push records
+  -v string
+    	Verbosity (default "info")
+```
+
+### Use as library in external application
 
 ```
 go get github.com/tillkuhn/rubin
@@ -54,13 +84,10 @@ go get github.com/tillkuhn/rubin
 client := rubin.New(&rubin.Options{
 	RestEndpoint: "https://localhost:443",
 	ClusterID:    "abc-r2d2",
-	APIKey: "1234567890",
-	APISecret: "**********",
+	ProducerAPIKey: "1234567890",
+	ProducerAPISecret: "**********",
 })
-resp, err := client.Produce(context.Background(), "toppic", "", "hey")
-if err != nil {
-	logger.Errorf("Cannot produce record to %s: %v", topic, err)
-}
+resp, err := client.Produce(context.Background(), "toppic", "", "Hello there!)
 ```
 
 ### Use as docker image
@@ -71,7 +98,7 @@ todo
 
 The project uses `make` to make your life easier. If you're not familiar with Makefiles you can take a look at [this quickstart guide](https://makefiletutorial.com).
 
-### Target Help 
+### Help on Targets 
 
 Whenever you need help regarding the available actions, just use the following command.
 
