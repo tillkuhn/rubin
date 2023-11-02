@@ -65,12 +65,14 @@ func run() error {
 		return errors.Wrap(errClient, "message record must not be empty")
 	}
 
-	var options rubin.Options
-	if err := envconfig.Process(envconfigPrefix, &options); err != nil {
+	options, err := rubin.NewOptionsFromEnvconfig()
+	if err != nil {
 		return err
 	}
+
+	// overwrite selected options based on CLI args
 	options.LogLevel = *verbosity
-	client := rubin.New(&options)
+	client := rubin.New(options)
 
 	if _, err := client.Produce(context.Background(), *topic, *key, *record); err != nil {
 		return err

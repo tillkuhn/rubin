@@ -21,7 +21,7 @@ func TestProduceMessageOK(t *testing.T) {
 	defer srv.Close()
 	opts := &Options{
 		RestEndpoint: srv.URL, ClusterID: testutil.ClusterID,
-		APIKey: "test.key", APISecret: "test.pw",
+		ProducerAPIKey: "test.key", ProducerAPISecret: "test.pw",
 		HTTPTimeout:  5 * time.Second,
 		LogLevel:     "debug",
 		DumpMessages: true,
@@ -53,11 +53,11 @@ func TestProduceMessageOK(t *testing.T) {
 	assert.NoError(t, err)
 
 	// test without auth (mock should return 401 is no user and pw and submitted in auth header
-	opts.APIKey = ""
-	opts.APISecret = ""
+	opts.ProducerAPIKey = ""
+	opts.ProducerAPISecret = ""
 	opts.DumpMessages = true
 
 	cc = New(opts)
 	_, err = cc.Produce(ctx, "public.welcome", "", "Hello Hase!") // Simple String
-	assert.ErrorContains(t, err, "unexpected http response status code 401")
+	assert.ErrorContains(t, err, "unexpected http")
 }

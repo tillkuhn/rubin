@@ -25,11 +25,15 @@ import (
 const defaultTimeout = 30 * time.Second
 const EventVersion = "1.0"
 
+// errClient addresses linter err113: do not define dynamic errors, use wrapped static errors instead
+// use like this:  fmt.Errorf("%w: unexpected http status code %d for %s", errClientResponse, res.StatusCode, url)
+var errClientResponse = errors.New("kafka client response error")
+
 // New returns a new Rubin Client for http interaction
 func New(options *Options) *Client {
 	logger := log.NewAtLevel(options.LogLevel)
 	logger.Infow("Kafka REST Proxy Client configured",
-		"endpoint", options.RestEndpoint, "useSecret", len(options.APISecret) > 0)
+		"endpoint", options.RestEndpoint, "useSecret", len(options.ProducerAPISecret) > 0)
 	if options.HTTPTimeout.Seconds() < 1 {
 		logger.Debugf("Timeout duration is zero or too low, using default %v", defaultTimeout)
 		options.HTTPTimeout = defaultTimeout
@@ -48,23 +52,21 @@ func New(options *Options) *Client {
 // "If your data is JSON, you can use json as the embedded format and embed it directly:"
 func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}) (kafkarestv3.ProduceResponse, error) {
 	defer func() {
-		_ = c.logger.Sync() // flushed any buffered log entries
+		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
 	}()
+
 	if key == "" {
 		key = uuid.New().String()
 		c.logger.Debugf("Using generated message key %s", key)
 	}
-	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.APIKey, c.options.APISecret)))
-	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, topic)
-	// payload := NewTopicPayload([]byte(key), data)
 	ts := time.Now().Round(time.Second) // make sure we round to .SSS
+	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.ProducerAPIKey, c.options.ProducerAPISecret)))
+	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, topic)
 	var keyData interface{}
-	// this looks stupid, ProduceRequestData.Data expected a pointer to interface{}
-	// and apparently we can't simply cast string to interface{}
 	if len(key) > 0 {
 		keyData = b64.StdEncoding.EncodeToString([]byte(key))
 	}
-	// json.Valid([
+
 	valueType, valueData := c.transformPayload(data)
 	payload := kafkarestv3.ProduceRequest{
 		// PartitionId: nil, // not needed
@@ -108,11 +110,8 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 		return kResp, err
 	}
 
-	// deal with err113: do not define dynamic errors, (re-)use wrapped static errors instead:
-	responseError := errors.New("unexpected rest proxy api response")
-
 	if res.StatusCode != http.StatusOK {
-		return kResp, errors.Wrap(responseError, fmt.Sprintf("unexpected http response status code %d for %s", res.StatusCode, url))
+		return kResp, fmt.Errorf("%w: unexpected http status code %d for %s", errClientResponse, res.StatusCode, url)
 	}
 	if err := json.Unmarshal(body, &kResp); err != nil {
 		return kResp, errors.Wrap(err, fmt.Sprintf("unexpected topic api response: %s", string(body)))
@@ -120,7 +119,7 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	// if kResp.ErrorCode != http.StatusOK {
 	//	return kResp, errors.Wrap(responseError, fmt.Sprintf("unexpected kafka response error code %d for %s", kResp.ErrorCode, url))
 	//}
-	c.logger.Infow("Record committed", "key", kResp.Key, "topic", kResp.TopicName, "offset", kResp.Offset, "partition", kResp.PartitionId)
+	c.logger.Infow("Record successfully committed", "key", kResp.Key, "topic", kResp.TopicName, "offset", kResp.Offset, "partition", kResp.PartitionId)
 	return kResp, nil
 }
 
