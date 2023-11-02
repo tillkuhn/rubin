@@ -1,0 +1,21 @@
+# this is our action playground which is triggered whenever this file is changes
+name: playground
+
+on:
+  push:
+    paths: [ '.github/workflows/playground.yml' ]
+
+env:
+  KAFKA_TOPIC: ci.events
+
+jobs:
+  test:
+    name: Come out and play
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install and test rubin
+        run: |
+          curl -LsSo {{ runner.temp }}/rubin.zip $(curl -LsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
+          unzip {{ runner.temp }}/rubin.zip -d {{ runner.temp }}
+          chmod u+g {{ runner.temp }}/rubin
+          {{ runner.temp }}/rubin -help

@@ -14,7 +14,10 @@ import (
 	"github.com/tillkuhn/rubin/internal/log"
 )
 
-const envconfigPrefix = "kafka"
+const (
+	envconfigPrefix = "kafka"
+	appName         = "rubin"
+)
 
 // useful variables to pass with ldflags during build, for example
 // go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'"
@@ -43,16 +46,7 @@ func run() error {
 	help := flag.Bool("help", false, "Display help")
 	flag.Parse()
 	if *help {
-		// app := path.Base(os.Args[0])
-		// fmt.Printf("*%s* is configured via %s.\nThe following environment variables can be used (`%s --help`):",
-		//	app, "https://github.com/kelseyhightower/envconfig[envconfig]", app)
-		usagePadding := 4
-		tabs := tabwriter.NewWriter(os.Stdout, 1, 0, usagePadding, ' ', 0)
-		_ = envconfig.Usagef(envconfigPrefix, &rubin.Options{}, tabs, envconfig.DefaultTableFormat)
-		_ = tabs.Flush()
-		// flag.Usage() // https://stackoverflow.com/a/23726033/4292075
-		fmt.Println("\nThis Application also supports the following CLI arguments")
-		flag.PrintDefaults()
+		showHelp()
 		return nil
 	}
 	logger := log.NewAtLevel(*verbosity)
@@ -72,6 +66,19 @@ func run() error {
 		logger.Errorf("Cannot produce record to %s: %v", *topic, err)
 		return err
 	}
-
 	return nil
+}
+
+func showHelp() {
+	fmt.Printf("Welcome to %s %s built %s (%s)\n\n", appName, version, date, commit)
+
+	usagePadding := 4
+	tabs := tabwriter.NewWriter(os.Stdout, 1, 0, usagePadding, ' ', 0)
+	_ = envconfig.Usagef(envconfigPrefix, &rubin.Options{}, tabs, envconfig.DefaultTableFormat)
+	_ = tabs.Flush()
+	// flag.Usage() // https://stackoverflow.com/a/23726033/4292075
+
+	fmt.Println("\nIn addition,the following CLI arguments")
+	flag.PrintDefaults()
+	fmt.Println()
 }
