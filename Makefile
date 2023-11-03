@@ -38,7 +38,7 @@ fmt: ## Formats all code with go fmt
 
 run: fmt ## Run the app with JSON String Message
 	go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
-	./cmd/rubin/main.go -v debug -topic $(TOPIC) -record '{"message":"Hello Franz!"}'
+	./cmd/rubin/main.go -v debug -topic $(TOPIC) -record '{"message":"Hello Franz!"}' -header="day=$(shell date +%A)"  -header "src=makefile"
 
 run-help: fmt ## Run the app and display app helm
 	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" ./cmd/rubin/main.go -help

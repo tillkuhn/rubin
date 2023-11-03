@@ -68,12 +68,12 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 
 	// This will fail (wrong password)
 	cc = New(&Options{
-		RestEndpoint: intOptions.RestEndpoint,
-		ClusterID:    intOptions.ClusterID,
-		APIKey:       "nobody",
-		APISecret:    "failed",
-		HTTPTimeout:  1 * time.Second,
-		DumpMessages: true,
+		RestEndpoint:      intOptions.RestEndpoint,
+		ClusterID:         intOptions.ClusterID,
+		ProducerAPIKey:    "nobody",
+		ProducerAPISecret: "failed",
+		HTTPTimeout:       1 * time.Second,
+		DumpMessages:      true,
 	})
 	resp, err = cc.Produce(ctx, topic, id, payloadData)
 	// assert.Equal(t, http.StatusUnauthorized, resp.ErrorCode)

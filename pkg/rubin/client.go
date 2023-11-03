@@ -23,7 +23,6 @@ import (
 )
 
 const defaultTimeout = 30 * time.Second
-const EventVersion = "1.0"
 
 // errClient addresses linter err113: do not define dynamic errors, use wrapped static errors instead
 // use like this:  fmt.Errorf("%w: unexpected http status code %d for %s", errClientResponse, res.StatusCode, url)
@@ -44,13 +43,8 @@ func New(options *Options) *Client {
 	}
 }
 
-// Produce produces records to the given topic, returning delivery reports for each record produced.
-// Example URL: https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443/kafka/v3/clusters/lkc-gqmo5r/topics/public.welcome/records
-// See also: https://github.com/confluentinc/kafka-rest#produce-records-with-json-data
-// and https://github.com/confluentinc/kafka-rest#produce-records-with-string-data
-// and https://docs.confluent.io/platform/current/kafka-rest/api.html
-// "If your data is JSON, you can use json as the embedded format and embed it directly:"
-func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}) (kafkarestv3.ProduceResponse, error) {
+// ProduceWithHeaders same as Produce, but allows to paas a key/value map of headers
+func (c *Client) ProduceWithHeaders(ctx context.Context, topic string, key string, data interface{}, hm map[string]string) (kafkarestv3.ProduceResponse, error) {
 	defer func() {
 		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
 	}()
@@ -67,10 +61,22 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 		keyData = b64.StdEncoding.EncodeToString([]byte(key))
 	}
 
+	// handle prealloc warning (https://stackoverflow.com/a/59734761/4292075)
+	apiHeaders := make([]kafkarestv3.ProduceRequestHeader, len(hm))
+	mapCnt := 0
+	for k, v := range hm {
+		val := b64.StdEncoding.EncodeToString([]byte(v))
+		apiHeaders[mapCnt] = kafkarestv3.ProduceRequestHeader{
+			Name:  k,
+			Value: &val,
+		}
+		mapCnt++
+	}
+
 	valueType, valueData := c.transformPayload(data)
 	payload := kafkarestv3.ProduceRequest{
 		// PartitionId: nil, // not needed
-		Headers: c.defaultHeaders(key, "rubin"),
+		Headers: apiHeaders,
 		Key: &kafkarestv3.ProduceRequestData{
 			Type: "BINARY",
 			Data: &keyData,
@@ -86,7 +92,7 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	req.Header.Set("Content-Type", "application/json") // don't add ;charset=UTF8 or server will complain
 	req.Header.Add("Authorization", "Basic "+basicAuth)
 
-	c.logger.Infow("Push record", "url", url)
+	c.logger.Infow("Push record", "url", url, "msg-len", len(payloadJSON), "headers", len(apiHeaders))
 	httpClient := &http.Client{Timeout: c.options.HTTPTimeout}
 	if c.options.DumpMessages {
 		reqDump, _ := httputil.DumpRequestOut(req, true)
@@ -123,6 +129,16 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	return kResp, nil
 }
 
+// Produce produces records to the given topic, returning delivery reports for each record produced.
+// Example URL: https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443/kafka/v3/clusters/lkc-gqmo5r/topics/public.welcome/records
+// See also: https://github.com/confluentinc/kafka-rest#produce-records-with-json-data
+// and https://github.com/confluentinc/kafka-rest#produce-records-with-string-data
+// and https://docs.confluent.io/platform/current/kafka-rest/api.html
+// "If your data is JSON, you can use json as the embedded format and embed it directly:"
+func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}) (kafkarestv3.ProduceResponse, error) {
+	return c.ProduceWithHeaders(ctx, topic, key, data, make(map[string]string))
+}
+
 // transformPayload inspects the payload, determines the valueType and handles JSON Strings
 func (c *Client) transformPayload(data interface{}) (valueType string, valueData interface{}) {
 	s, isString := data.(string)
@@ -147,27 +163,6 @@ func (c *Client) transformPayload(data interface{}) (valueType string, valueData
 		valueData = data
 	}
 	return valueType, valueData
-}
-
-// defaultHeaders returns a set of standard kafka message headers
-func (c *Client) defaultHeaders(messageID string, clientID string) []kafkarestv3.ProduceRequestHeader {
-	schema := b64.StdEncoding.EncodeToString([]byte("event@" + EventVersion))
-	messageID = b64.StdEncoding.EncodeToString([]byte(messageID))
-	clientID = b64.StdEncoding.EncodeToString([]byte(clientID))
-	return []kafkarestv3.ProduceRequestHeader{
-		{
-			Name:  "messageId",
-			Value: &messageID,
-		},
-		{
-			Name:  "schema",
-			Value: &schema,
-		},
-		{
-			Name:  "clientId",
-			Value: &clientID,
-		},
-	}
 }
 
 // CloseSilently avoids "Unhandled error warnings if you use defer to close Resources

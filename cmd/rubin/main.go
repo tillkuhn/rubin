@@ -33,6 +33,21 @@ var (
 	errClient = errors.New("client error") // used to wrap fine-grained errors
 )
 
+// arrayFlags based on https://stackoverflow.com/a/28323276/4292075
+// How to get a list of values into a flag in Golang?
+//
+//	go run your_file.go --list1 value1 --list1 value2
+type arrayFlags []string
+
+func (af *arrayFlags) String() string {
+	return "my string representation"
+}
+
+func (af *arrayFlags) Set(value string) error {
+	*af = append(*af, value)
+	return nil
+}
+
 func main() {
 	// Disable automaxprocs log see https://github.com/uber-go/automaxprocs/issues/18
 	nopLog := func(string, ...interface{}) {}
@@ -53,6 +68,10 @@ func run() error {
 	verbosity := flag.String("v", "info", "Verbosity")
 	// if !flag.Parsed() { // avoid, seems to be true when we invoke run() from _test so we can't test args
 	help := flag.Bool("help", false, "Display help")
+	var headers arrayFlags
+	flag.Var(&headers, "header", "Header formatted as key=value, can be used multiple times")
+
+	// nice: we can also use flags for maps https://www.emmanuelgautier.com/blog/string-map-command-argument-go
 	flag.Parse()
 	if *help {
 		showHelp()
@@ -67,7 +86,16 @@ func run() error {
 	if strings.TrimSpace(*record) == "" {
 		return errors.Wrap(errClient, "message record must not be empty")
 	}
-
+	headerMap := make(map[string]string)
+	minParts := 2 // golangci treats 2 as a magic number
+	for _, h := range headers {
+		parts := strings.Split(h, "=")
+		if len(parts) < minParts {
+			continue
+		}
+		headerMap[parts[0]] = parts[1]
+	}
+	fmt.Printf("%v map %v", headers, headerMap)
 	options, err := rubin.NewOptionsFromEnvconfig()
 	if err != nil {
 		return err
@@ -77,7 +105,7 @@ func run() error {
 	options.LogLevel = *verbosity
 	client := rubin.New(options)
 
-	if _, err := client.Produce(context.Background(), *topic, *key, *record); err != nil {
+	if _, err := client.ProduceWithHeaders(context.Background(), *topic, *key, *record, headerMap); err != nil {
 		return err
 	}
 	return nil
