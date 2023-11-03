@@ -16,7 +16,7 @@ export KAFKA_REST_ENDPOINT ?= $(shell test -f pkg/rubin/.test-int-options.yaml &
 export KAFKA_CLUSTER_ID ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep cluster_id pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
 export KAFKA_PRODUCER_API_KEY ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep api_key pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
 export KAFKA_PRODUCER_API_SECRET ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep api_secret pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
-export KAFKA_DUMP_MESSAGES ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep dump_messages pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
+#export KAFKA_DUMP_MESSAGES ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep dump_messages pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
 export KAFKA_LOG_LEVEL ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep log_level pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "")
 
 all: git-hooks  tidy ## Initializes all tools
@@ -35,13 +35,6 @@ tidy: ## Cleans up go.mod and go.sum
 
 fmt: ## Formats all code with go fmt
 	@go fmt ./...
-
-run: fmt ## Run the app with JSON String Message
-	go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
-	./cmd/rubin/main.go -v debug -topic $(TOPIC) -record '{"message":"Hello Franz!"}' -header="day=$(shell date +%A)" -header "src=makefile" -ce
-
-run-help: fmt ## Run the app and display app helm
-	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" ./cmd/rubin/main.go -help
 
 test-build: ## Tests whether the code compiles
 	@go build -o /dev/null ./...
@@ -116,3 +109,12 @@ help: ## Shows the help
 	@grep -E '^[ a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
         awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' | sort
 	@echo ''
+
+run: fmt ## Run the app with JSON String Message
+	KAFKA_DUMP_MESSAGES=true go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
+	./cmd/rubin/main.go -v debug -topic $(TOPIC) -record '{"message":"Hello Franz!"}' \
+	-source "rubin/makefile" -subject "my.subject" -header="day=$(shell date +%A)" -header "header2=yeah" -ce
+
+run-help: fmt ## Run the app and display app helm
+	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" ./cmd/rubin/main.go -help
+

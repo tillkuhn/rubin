@@ -19,8 +19,12 @@ jobs:
           unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }} && chmod u+g ${{ runner.temp }}/rubin
       - name: Test Kafka Messaging
         # GitHub vars: https://dev.to/mihinduranasinghe/working-with-environment-variables-github-actions-part-2-46po
+        # https://stackoverflow.com/questions/59073850/github-actions-get-url-of-test-build
         run: |
-          ${{ runner.temp }}/rubin -topic "$KAFKA_TOPIC" -key "$GITHUB_RUN_ID" -ce -record "{\"action\":\"deploy-api\",\"repo\":\"$GITHUB_REPOSITORY\"}" --header "commit=$GITHUB_SHA" --header "workflow=$GITHUB_WORKFLOW"
+          ${{ runner.temp }}/rubin -topic "$KAFKA_TOPIC" -key "$GITHUB_RUN_ID" -ce \
+          -source "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          -record "{\"action\":\"deploy-api\",\"repo\":\"$GITHUB_REPOSITORY\"}" \
+          -header "commit=$GITHUB_SHA" -header "workflow=$GITHUB_WORKFLOW"
         env:
           # shared with HCP Vault
           KAFKA_REST_ENDPOINT: ${{ secrets.KAFKA_REST_ENDPOINT }}

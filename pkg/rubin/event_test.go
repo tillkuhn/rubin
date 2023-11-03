@@ -14,7 +14,8 @@ type testData struct {
 
 func TestNewCloudEvent(t *testing.T) {
 	m := map[string]string{"action": "test/me", "message": "test output"}
-	event, err := NewCloudEvent("//testing/event", m)
+	et := "test.event"
+	event, err := NewCloudEvent("//testing/event", et, "", m)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, event.ID())
 	bytes, err := json.MarshalIndent(event, "", "  ")
@@ -32,7 +33,7 @@ func TestNewCloudEvent(t *testing.T) {
 	// t.Log("\nMAP EVENT:" + string(bytes))
 
 	jsonString := `{"message":"Hello Franz!"}`
-	event, err = NewCloudEvent("//testing/event", jsonString)
+	event, err = NewCloudEvent("//testing/event", et, "your.subject", jsonString)
 	assert.NoError(t, err)
 	bytes, err = json.MarshalIndent(event, "", "  ")
 	assert.NoError(t, err)

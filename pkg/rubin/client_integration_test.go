@@ -56,7 +56,7 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	// assert.Equal(t, http.StatusOK, resp.ErrorCode)
 	assert.NoError(t, err)
 
-	event, err := NewCloudEvent("//testing/ci-test", hm)
+	event, err := NewCloudEvent("//testing/ci-test", "int.test", "", hm)
 	assert.NoError(t, err)
 
 	resp, err = cc.Produce(ctx, topic, "event-123", event, hm)

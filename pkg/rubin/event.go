@@ -25,20 +25,31 @@ import (
 //
 // Spec: https://github.com/cloudevents/spec/blob/main/cloudevents/formats/json-format.md
 // Real World Examples: https://cloud.google.com/eventarc/docs/workflows/cloudevents
-func NewCloudEvent(sourceURI string, data interface{}) (cloudevents.Event, error) {
+// JSON Schema: https://github.com/cloudevents/spec/blob/main/cloudevents/formats/cloudevents.json
+func NewCloudEvent(sourceURI string, eventType string, subject string, data interface{}) (cloudevents.Event, error) {
 	event := cloudevents.NewEvent()
+
+	// Set event context, required: ["id", "source", "specversion", "type"]
+	// ID  identifies the event.
 	event.SetID(uuid.New().String())
 
-	// The Source of the event,  URI-reference such as ""//my.apis.com/projects/123/logs
+	// Identifies the context in which an event happened. URI-reference such as ""//my.apis.com/projects/123/logs
+	// Examples "https://github.com/cloudevents", "/sensors/tn-1234567/alerts", "cloudevents/spec/pull/123",
+	// "mailto:cncf-wg-serverless@lists.cncf.io", "urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66"
 	event.SetSource(sourceURI)
 
-	// The type of event data "ny.domain.v1.dataWritten",
-	event.SetType("example.type")
+	// "Describes the type of event related to the originating occurrence.",
+	//  "com.github.pull_request.opened" or "com.example.object.deleted.v2"
+	event.SetType(eventType)
 
-	// subject: attribute specific to the event type.
-	// event.SetSubject()
+	// Optional "Describes the subject of the event in the context of the event producer (identified by source).",
+	// e.g. "newfile.jpg"
+	if subject != "" {
+		event.SetSubject(subject)
+	}
 
-	// event time = current time, make sure we round to .SSS
+	// "Timestamp of when the occurrence happened. Must adhere to RFC 3339.",
+	// make sure we round to .SSS (at least we had an issue when we did not round)
 	event.SetTime(time.Now().Round(time.Second))
 	_, payload, err := transformPayload(data)
 
@@ -46,6 +57,7 @@ func NewCloudEvent(sourceURI string, data interface{}) (cloudevents.Event, error
 		return cloudevents.Event{}, err
 	}
 
+	// the actual event payload
 	err = event.SetData(cloudevents.ApplicationJSON, payload) // data content type
 	return event, err
 }

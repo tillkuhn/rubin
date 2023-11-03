@@ -16,6 +16,7 @@ func init() {
 
 func TestProduceMessageOK(t *testing.T) {
 	hm := map[string]string{"heading": "for tomorrow"}
+	et := "com.test.event"
 	ctx := context.Background()
 	srv := testutil.ServerMock(200) // "https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443"
 	defer srv.Close()
@@ -42,7 +43,7 @@ func TestProduceMessageOK(t *testing.T) {
 	_, err = cc.Produce(ctx, "public.welcome", "", `{"example": 1}`, hm) // valid json
 	assert.NoError(t, err)
 
-	event, err := NewCloudEvent("//testing/client", map[string]string{"heading": "for tomorrow"})
+	event, err := NewCloudEvent("//testing/client", et, "", map[string]string{"heading": "for tomorrow"})
 	assert.NoError(t, err)
 
 	_, err = cc.Produce(ctx, "public.welcome", "abc/123", event, hm) // struct that can be unmarshalled
