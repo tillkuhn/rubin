@@ -16,6 +16,7 @@ func init() {
 }
 
 func TestProduceMessageOK(t *testing.T) {
+	hm := make(map[string]string)
 	ctx := context.Background()
 	srv := testutil.ServerMock(200) // "https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443"
 	defer srv.Close()
@@ -28,7 +29,7 @@ func TestProduceMessageOK(t *testing.T) {
 	}
 	cc := New(opts)
 	// strings.NewReader("hello world")
-	resp, err := cc.Produce(ctx, "public.welcome", "1234", "Hello Hase!")
+	resp, err := cc.Produce(ctx, "public.welcome", "1234", "Hello Hase!", hm)
 	assert.NoError(t, err)
 	assert.Equal(t, int32(42), resp.Offset)
 	assert.NotNil(t, resp.Timestamp)
@@ -37,9 +38,9 @@ func TestProduceMessageOK(t *testing.T) {
 	// test with default timeout and debug = true and empty key
 	opts.HTTPTimeout = 0
 	cc = New(opts)
-	_, err = cc.Produce(ctx, "public.welcome", "", "Hello Hase!") // Simple String
+	_, err = cc.Produce(ctx, "public.welcome", "", "Hello Hase!", hm) // Simple String
 	assert.NoError(t, err)
-	_, err = cc.Produce(ctx, "public.welcome", "", `{"example": 1}`) // valid json
+	_, err = cc.Produce(ctx, "public.welcome", "", `{"example": 1}`, hm) // valid json
 	assert.NoError(t, err)
 
 	event := Event{
@@ -49,7 +50,7 @@ func TestProduceMessageOK(t *testing.T) {
 		Source:  os.Args[0],
 	}
 
-	_, err = cc.Produce(ctx, "public.welcome", "abc/123", event) // struct that can be unmarshalled
+	_, err = cc.Produce(ctx, "public.welcome", "abc/123", event, hm) // struct that can be unmarshalled
 	assert.NoError(t, err)
 
 	// test without auth (mock should return 401 is no user and pw and submitted in auth header
@@ -58,6 +59,6 @@ func TestProduceMessageOK(t *testing.T) {
 	opts.DumpMessages = true
 
 	cc = New(opts)
-	_, err = cc.Produce(ctx, "public.welcome", "", "Hello Hase!") // Simple String
+	_, err = cc.Produce(ctx, "public.welcome", "", "Hello Hase!", hm) // Simple String
 	assert.ErrorContains(t, err, "unexpected http")
 }

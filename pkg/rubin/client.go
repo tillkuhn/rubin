@@ -8,14 +8,12 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
+	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"time"
-
-	"github.com/google/uuid"
-
-	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
 
 	"github.com/pkg/errors"
 
@@ -37,14 +35,20 @@ func New(options *Options) *Client {
 		logger.Debugf("Timeout duration is zero or too low, using default %v", defaultTimeout)
 		options.HTTPTimeout = defaultTimeout
 	}
+
 	return &Client{
 		options: options,
 		logger:  *logger,
 	}
 }
 
-// ProduceWithHeaders same as Produce, but allows to paas a key/value map of headers
-func (c *Client) ProduceWithHeaders(ctx context.Context, topic string, key string, data interface{}, hm map[string]string) (kafkarestv3.ProduceResponse, error) {
+// Produce produces records to the given topic, returning delivery reports for each record produced.
+// Example URL: https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443/kafka/v3/clusters/lkc-gqmo5r/topics/public.welcome/records
+// See also: https://github.com/confluentinc/kafka-rest#produce-records-with-json-data
+// and https://github.com/confluentinc/kafka-rest#produce-records-with-string-data
+// and https://docs.confluent.io/platform/current/kafka-rest/api.html
+// "If your data is JSON, you can use json as the embedded format and embed it directly:"
+func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}, hm map[string]string) (kafkarestv3.ProduceResponse, error) {
 	defer func() {
 		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
 	}()
@@ -127,16 +131,6 @@ func (c *Client) ProduceWithHeaders(ctx context.Context, topic string, key strin
 	//}
 	c.logger.Infow("Record successfully committed", "key", kResp.Key, "topic", kResp.TopicName, "offset", kResp.Offset, "partition", kResp.PartitionId)
 	return kResp, nil
-}
-
-// Produce produces records to the given topic, returning delivery reports for each record produced.
-// Example URL: https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443/kafka/v3/clusters/lkc-gqmo5r/topics/public.welcome/records
-// See also: https://github.com/confluentinc/kafka-rest#produce-records-with-json-data
-// and https://github.com/confluentinc/kafka-rest#produce-records-with-string-data
-// and https://docs.confluent.io/platform/current/kafka-rest/api.html
-// "If your data is JSON, you can use json as the embedded format and embed it directly:"
-func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}) (kafkarestv3.ProduceResponse, error) {
-	return c.ProduceWithHeaders(ctx, topic, key, data, make(map[string]string))
 }
 
 // transformPayload inspects the payload, determines the valueType and handles JSON Strings

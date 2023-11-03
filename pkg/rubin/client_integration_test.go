@@ -36,7 +36,8 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 
 	// This should succeed
 	cc := New(intOptions)
-	resp, err := cc.Produce(ctx, topic, id, payloadData)
+	hm := make(map[string]string)
+	resp, err := cc.Produce(ctx, topic, id, payloadData, hm)
 	assert.NoError(t, err)
 	assert.Greater(t, resp.Offset, int32(0))
 	assert.Equal(t, topic, resp.TopicName)
@@ -51,8 +52,7 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 		Model:   "Taurus",
 		Mileage: 200000,
 	}
-
-	resp, err = cc.Produce(ctx, topic, "my-car-123", newCar)
+	resp, err = cc.Produce(ctx, topic, "my-car-123", newCar, hm)
 	//t.Log(string(resp))
 	// assert.Equal(t, http.StatusOK, resp.ErrorCode)
 	assert.NoError(t, err)
@@ -63,7 +63,7 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 		Time:    time.Now().Round(time.Second), // make sure we round to .SSS
 		Source:  path.Base(os.Args[0]),
 	}
-	resp, err = cc.Produce(ctx, topic, "event-123", event)
+	resp, err = cc.Produce(ctx, topic, "event-123", event, hm)
 	assert.NoError(t, err)
 
 	// This will fail (wrong password)
@@ -75,9 +75,9 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 		HTTPTimeout:       1 * time.Second,
 		DumpMessages:      true,
 	})
-	resp, err = cc.Produce(ctx, topic, id, payloadData)
+	resp, err = cc.Produce(ctx, topic, id, payloadData, hm)
 	// assert.Equal(t, http.StatusUnauthorized, resp.ErrorCode)
-	assert.ErrorContains(t, err, "unexpected http response")
+	assert.ErrorContains(t, err, "unexpected http")
 	assert.Empty(t, resp.TopicName)
 
 	t.Log("Real Kafka Integration Test is happy")

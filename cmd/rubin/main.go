@@ -105,7 +105,7 @@ func run() error {
 	options.LogLevel = *verbosity
 	client := rubin.New(options)
 
-	if _, err := client.ProduceWithHeaders(context.Background(), *topic, *key, *record, headerMap); err != nil {
+	if _, err := client.Produce(context.Background(), *topic, *key, *record, headerMap); err != nil {
 		return err
 	}
 	return nil
