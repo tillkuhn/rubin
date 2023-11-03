@@ -1,6 +1,7 @@
 package rubin
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -33,4 +34,8 @@ func NewOptionsFromEnvconfigWithPrefix(prefix string) (*Options, error) {
 		return nil, err
 	}
 	return &options, nil
+}
+
+func (o Options) String() string {
+	return fmt.Sprintf("%s/%s", o.RestEndpoint, o.ClusterID)
 }

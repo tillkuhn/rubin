@@ -1,5 +1,3 @@
-// Package rubin experiments with Kafka REST Proxy API for sync Kafka communication
-// Full docs: https://docs.confluent.io/cloud/current/api.html#tag/Records-(v3)
 package rubin
 
 import (
@@ -13,24 +11,32 @@ import (
 	"net/http/httputil"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
 	"github.com/google/uuid"
+
+	"go.uber.org/zap"
 
 	"github.com/pkg/errors"
 
 	"github.com/tillkuhn/rubin/internal/log"
 )
 
+// defaultTimeout for http communication
 const defaultTimeout = 30 * time.Second
 
 // errClient addresses linter err113: do not define dynamic errors, use wrapped static errors instead
 // use like this:  fmt.Errorf("%w: unexpected http status code %d for %s", errClientResponse, res.StatusCode, url)
 var errClientResponse = errors.New("kafka client response error")
 
-// New returns a new Rubin Client for http interaction
-func New(options *Options) *Client {
+// Client to communicate with the Kafka REST Endpoint Topic/Records API
+type Client struct {
+	options    *Options
+	httpClient *http.Client
+	logger     zap.SugaredLogger
+}
+
+// NewClient returns a new Rubin Client for http interaction
+func NewClient(options *Options) *Client {
 	logger := log.NewAtLevel(options.LogLevel)
 	logger.Infow("Kafka REST Proxy Client configured",
 		"endpoint", options.RestEndpoint, "useSecret", len(options.ProducerAPISecret) > 0)
@@ -40,47 +46,31 @@ func New(options *Options) *Client {
 	}
 
 	return &Client{
-		options: options,
-		logger:  *logger,
+		options:    options,
+		httpClient: &http.Client{Timeout: options.HTTPTimeout},
+		logger:     *logger,
 	}
 }
 
-// Produce produces records to the given topic, returning delivery reports for each record produced.
-// Example URL: https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443/kafka/v3/clusters/lkc-gqmo5r/topics/public.welcome/records
-// See also: https://github.com/confluentinc/kafka-rest#produce-records-with-json-data
-// and https://github.com/confluentinc/kafka-rest#produce-records-with-string-data
-// and https://docs.confluent.io/platform/current/kafka-rest/api.html
-// "If your data is JSON, you can use json as the embedded format and embed it directly:"
+func (c *Client) String() string {
+	return fmt.Sprintf("rubin-http-client@%s/%s", c.options.RestEndpoint, c.options.ClusterID)
+}
+
 func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}, hm map[string]string) (kafkarestv3.ProduceResponse, error) {
 	defer func() {
 		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
 	}()
-
-	if key == "" {
-		key = uuid.New().String()
-		c.logger.Debugf("Using generated message key %s", key)
-	}
-	ts := time.Now().Round(time.Second) // make sure we round to .SSS
+	keyData := c.messageKeyData(key)
 	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.ProducerAPIKey, c.options.ProducerAPISecret)))
 	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, topic)
-	var keyData interface{}
-	if len(key) > 0 {
-		keyData = b64.StdEncoding.EncodeToString([]byte(key))
-	}
+	apiHeaders := messageHeaders(hm)
 
-	// handle prealloc warning (https://stackoverflow.com/a/59734761/4292075)
-	apiHeaders := make([]kafkarestv3.ProduceRequestHeader, len(hm))
-	mapCnt := 0
-	for k, v := range hm {
-		val := b64.StdEncoding.EncodeToString([]byte(v))
-		apiHeaders[mapCnt] = kafkarestv3.ProduceRequestHeader{
-			Name:  k,
-			Value: &val,
-		}
-		mapCnt++
+	var kResp kafkarestv3.ProduceResponse
+	valueType, valueData, err := transformPayload(data)
+	if err != nil {
+		return kResp, fmt.Errorf("%w: unable to extract paylos (%s)", errClientResponse, err.Error())
 	}
-
-	valueType, valueData := transformPayload(data, c.logger)
+	ts := time.Now().Round(time.Second)
 	payload := kafkarestv3.ProduceRequest{
 		// PartitionId: nil, // not needed
 		Headers: apiHeaders,
@@ -100,66 +90,88 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 	req.Header.Add("Authorization", "Basic "+basicAuth)
 
 	c.logger.Infow("Push record", "url", url, "msg-len", len(payloadJSON), "headers", len(apiHeaders))
-	httpClient := &http.Client{Timeout: c.options.HTTPTimeout}
-	if c.options.DumpMessages {
-		reqDump, _ := httputil.DumpRequestOut(req, true)
-		fmt.Printf("Dump HTTP-Request:\n%s\n\n", string(reqDump)) // only for debug
-	}
-	var kResp kafkarestv3.ProduceResponse
-	res, err := httpClient.Do(req)
+	c.checkDumpRequest(req)
+	res, err := c.httpClient.Do(req)
 	if err != nil {
-		return kResp, err
+		return kResp, fmt.Errorf("%w: cannot send http request %s", errClientResponse, err.Error())
 	}
-	if c.options.DumpMessages {
-		resDump, _ := httputil.DumpResponse(res, true)
-		fmt.Printf("Dump HTTP-Response:\n%s", string(resDump)) // only for debug
-	}
+	c.checkDumpResponse(res)
 
 	defer closeSilently(res.Body)
 	body, err := io.ReadAll(res.Body)
-
-	// kResp. = res.StatusCode
 	if err != nil {
-		return kResp, err
+		return kResp, fmt.Errorf("%w: cannot parse response body %s", errClientResponse, err.Error())
 	}
 
 	if res.StatusCode != http.StatusOK {
 		return kResp, fmt.Errorf("%w: unexpected http status code %d for %s", errClientResponse, res.StatusCode, url)
 	}
+
 	if err := json.Unmarshal(body, &kResp); err != nil {
 		return kResp, errors.Wrap(err, fmt.Sprintf("unexpected topic api response: %s", string(body)))
 	}
-	// if kResp.ErrorCode != http.StatusOK {
-	//	return kResp, errors.Wrap(responseError, fmt.Sprintf("unexpected kafka response error code %d for %s", kResp.ErrorCode, url))
-	//}
+	// todo check if kResp.ErrorCode != http.StatusOK (  "error_code": 200 ), but ErrorCode ist not in ProduceResponse
 	c.logger.Infow("Record successfully committed", "key", kResp.Key, "topic", kResp.TopicName, "offset", kResp.Offset, "partition", kResp.PartitionId)
+
 	return kResp, nil
 }
 
+func (c *Client) messageKeyData(key string) interface{} {
+	if key == "" {
+		key = uuid.New().String()
+		c.logger.Debugf("Using generated message key %s", key)
+	}
+	keyData := b64.StdEncoding.EncodeToString([]byte(key))
+	return keyData
+}
+
+func messageHeaders(hm map[string]string) []kafkarestv3.ProduceRequestHeader {
+	apiHeaders := make([]kafkarestv3.ProduceRequestHeader, len(hm))
+	mapCnt := 0
+	for k, v := range hm {
+		val := b64.StdEncoding.EncodeToString([]byte(v))
+		apiHeaders[mapCnt] = kafkarestv3.ProduceRequestHeader{
+			Name:  k,
+			Value: &val,
+		}
+		mapCnt++
+	}
+	return apiHeaders
+}
+
 // transformPayload inspects the payload, determines the valueType and handles JSON Strings
-func transformPayload(data interface{}, logger zap.SugaredLogger) (valueType string, valueData interface{}) {
+func transformPayload(data interface{}) (valueType string, valueData interface{}, err error) {
 	s, isString := data.(string)
-	// .logger.Infof("Interface Data: %T", data) // returns *string, string or rubin.Event ...
 	switch {
 	case isString && json.Valid([]byte(s)):
-		logger.Debugf("Record value is a string that contains valid JSON, using unmarshal")
 		valueType = "JSON"
 		err := json.Unmarshal([]byte(s), &valueData)
 		if err != nil {
-			logger.Errorf("%v", err)
+			return valueType, valueData, err
 		}
 	case isString:
 		valueType = "STRING"
 		// "value":{"type":"STRING","data":"Hello String!"}
-		logger.Debugf("Record value is a simple string")
 		valueData = data
 	default:
 		valueType = "JSON"
 		// real json "value":{"type":"JSON","data":{"action":"update/event",
-		logger.Debug("Record value will be marshalled as embedded struct in ProduceRequest")
 		valueData = data
 	}
-	return valueType, valueData
+	return valueType, valueData, nil
+}
+
+func (c *Client) checkDumpRequest(req *http.Request) {
+	if c.options.DumpMessages {
+		reDump, _ := httputil.DumpRequest(req, true)
+		fmt.Printf("Dump HTTP-Request:\n%s", string(reDump)) // only for debug
+	}
+}
+func (c *Client) checkDumpResponse(res *http.Response) {
+	if c.options.DumpMessages {
+		resDump, _ := httputil.DumpResponse(res, true)
+		fmt.Printf("Dump HTTP-Response:\n%s", string(resDump)) // only for debug
+	}
 }
 
 // CloseSilently avoids "Unhandled error warnings if you use defer to close Resources

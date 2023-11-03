@@ -68,6 +68,7 @@ func run() error {
 	verbosity := flag.String("v", "info", "Verbosity")
 	// if !flag.Parsed() { // avoid, seems to be true when we invoke run() from _test so we can't test args
 	help := flag.Bool("help", false, "Display help")
+	ce := flag.Bool("ce", false, "Use cloudevents format (default: STRING or JSON)")
 	var headers arrayFlags
 	flag.Var(&headers, "header", "Header formatted as key=value, can be used multiple times")
 
@@ -95,7 +96,18 @@ func run() error {
 		}
 		headerMap[parts[0]] = parts[1]
 	}
-	fmt.Printf("%v map %v", headers, headerMap)
+	// fmt.Printf("%v map %v", headers, headerMap)
+	var payloadData interface{}
+	if *ce {
+		event, err := rubin.NewCloudEvent("//rubin/cli", *record)
+		if err != nil {
+			return err
+		}
+		payloadData = event
+	} else {
+		payloadData = *record
+	}
+
 	options, err := rubin.NewOptionsFromEnvconfig()
 	if err != nil {
 		return err
@@ -103,9 +115,8 @@ func run() error {
 
 	// overwrite selected options based on CLI args
 	options.LogLevel = *verbosity
-	client := rubin.New(options)
-
-	if _, err := client.Produce(context.Background(), *topic, *key, *record, headerMap); err != nil {
+	client := rubin.NewClient(options)
+	if _, err := client.Produce(context.Background(), *topic, *key, payloadData, headerMap); err != nil {
 		return err
 	}
 	return nil

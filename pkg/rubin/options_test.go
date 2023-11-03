@@ -25,4 +25,5 @@ func TestRunEnv(t *testing.T) {
 	assert.NotEmpty(t, opts.ProducerAPIKey)
 	assert.NotEmpty(t, opts.ProducerAPISecret)
 	assert.NotEmpty(t, opts.ClusterID)
+	assert.Contains(t, opts.String(), mock.URL)
 }

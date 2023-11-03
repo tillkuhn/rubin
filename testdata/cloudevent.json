@@ -1,0 +1,12 @@
+{
+  "specversion": "1.0",
+  "id": "8ea6bfba-3312-4d9e-9765-1eca0cd14c69",
+  "source": "example/uri",
+  "type": "example.type",
+  "datacontenttype": "application/json",
+  "time": "2023-11-03T14:07:30.95108Z",
+  "data": {
+    "action": "test/me",
+    "message": "test output"
+  }
+}

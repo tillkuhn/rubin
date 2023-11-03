@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"os"
-	"path"
 	"testing"
 	"time"
 )
@@ -35,8 +34,8 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	payloadData := []byte("Bonjour le monde, de nouveau! Let's go!'")
 
 	// This should succeed
-	cc := New(intOptions)
-	hm := make(map[string]string)
+	cc := NewClient(intOptions)
+	hm := map[string]string{"heading": "for tomorrow"}
 	resp, err := cc.Produce(ctx, topic, id, payloadData, hm)
 	assert.NoError(t, err)
 	assert.Greater(t, resp.Offset, int32(0))
@@ -57,17 +56,14 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	// assert.Equal(t, http.StatusOK, resp.ErrorCode)
 	assert.NoError(t, err)
 
-	event := Event{
-		Action:  "integration/test",
-		Message: "go with me",
-		Time:    time.Now().Round(time.Second), // make sure we round to .SSS
-		Source:  path.Base(os.Args[0]),
-	}
+	event, err := NewCloudEvent("//testing/ci-test", hm)
+	assert.NoError(t, err)
+
 	resp, err = cc.Produce(ctx, topic, "event-123", event, hm)
 	assert.NoError(t, err)
 
 	// This will fail (wrong password)
-	cc = New(&Options{
+	cc = NewClient(&Options{
 		RestEndpoint:      intOptions.RestEndpoint,
 		ClusterID:         intOptions.ClusterID,
 		ProducerAPIKey:    "nobody",
