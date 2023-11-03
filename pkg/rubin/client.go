@@ -8,12 +8,15 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
-	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
+	"github.com/google/uuid"
 
 	"github.com/pkg/errors"
 
@@ -77,7 +80,7 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 		mapCnt++
 	}
 
-	valueType, valueData := c.transformPayload(data)
+	valueType, valueData := transformPayload(data, c.logger)
 	payload := kafkarestv3.ProduceRequest{
 		// PartitionId: nil, // not needed
 		Headers: apiHeaders,
@@ -112,7 +115,7 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 		fmt.Printf("Dump HTTP-Response:\n%s", string(resDump)) // only for debug
 	}
 
-	defer c.closeSilently(res.Body)
+	defer closeSilently(res.Body)
 	body, err := io.ReadAll(res.Body)
 
 	// kResp. = res.StatusCode
@@ -134,34 +137,34 @@ func (c *Client) Produce(ctx context.Context, topic string, key string, data int
 }
 
 // transformPayload inspects the payload, determines the valueType and handles JSON Strings
-func (c *Client) transformPayload(data interface{}) (valueType string, valueData interface{}) {
+func transformPayload(data interface{}, logger zap.SugaredLogger) (valueType string, valueData interface{}) {
 	s, isString := data.(string)
 	// .logger.Infof("Interface Data: %T", data) // returns *string, string or rubin.Event ...
 	switch {
 	case isString && json.Valid([]byte(s)):
-		c.logger.Debugf("Record value is a string that contains valid JSON, using unmarshal")
+		logger.Debugf("Record value is a string that contains valid JSON, using unmarshal")
 		valueType = "JSON"
 		err := json.Unmarshal([]byte(s), &valueData)
 		if err != nil {
-			c.logger.Errorf("%v", err)
+			logger.Errorf("%v", err)
 		}
 	case isString:
 		valueType = "STRING"
 		// "value":{"type":"STRING","data":"Hello String!"}
-		c.logger.Debugf("Record value is a simple string")
+		logger.Debugf("Record value is a simple string")
 		valueData = data
 	default:
 		valueType = "JSON"
 		// real json "value":{"type":"JSON","data":{"action":"update/event",
-		c.logger.Debug("Record value will be marshalled as embedded struct in ProduceRequest")
+		logger.Debug("Record value will be marshalled as embedded struct in ProduceRequest")
 		valueData = data
 	}
 	return valueType, valueData
 }
 
 // CloseSilently avoids "Unhandled error warnings if you use defer to close Resources
-func (c *Client) closeSilently(cl io.Closer) {
+func closeSilently(cl io.Closer) {
 	if err := cl.Close(); err != nil {
-		c.logger.Warn(err.Error())
+		log.NewAtLevel("warn").Warn(err.Error())
 	}
 }
