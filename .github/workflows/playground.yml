@@ -23,8 +23,10 @@ jobs:
         run: |
           ${{ runner.temp }}/rubin -topic "$KAFKA_TOPIC" -key "$GITHUB_RUN_ID" -ce \
           -source "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          -type "com.github.artifact.released" \
+          -subject "rubin_0.1.4_darwin_amd64.zip" \
           -record "{\"action\":\"deploy-api\",\"repo\":\"$GITHUB_REPOSITORY\"}" \
-          -header "commit=$GITHUB_SHA" -header "workflow=$GITHUB_WORKFLOW"
+          -header "commit=$GITHUB_SHA" -header "workflow=$GITHUB_WORKFLOW" -header "type=cloudevents"
         env:
           # shared with HCP Vault
           KAFKA_REST_ENDPOINT: ${{ secrets.KAFKA_REST_ENDPOINT }}
