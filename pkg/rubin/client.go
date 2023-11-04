@@ -82,6 +82,11 @@ func (c *Client) Produce(ctx context.Context, record Request) (Response, error) 
 
 	var kResp Response
 	valueType, valueData, err := transformPayload(record.Data)
+
+	// handle message headers, add content type for cloud events
+	if record.Headers == nil {
+		record.Headers = map[string]string{}
+	}
 	if err != nil {
 		return kResp, fmt.Errorf("%w: unable to extract paylos (%s)", errClientResponse, err.Error())
 	}
@@ -90,6 +95,7 @@ func (c *Client) Produce(ctx context.Context, record Request) (Response, error) 
 		record.Headers["content-type"] = "application/cloudevents+json; charset=UTF-8"
 	}
 	apiHeaders := messageHeaders(record.Headers)
+
 	ts := time.Now().Round(time.Second)
 	payload := kafkarestv3.ProduceRequest{
 		// PartitionId: nil, // not needed

@@ -56,6 +56,10 @@ func TestProduceMessageOK(t *testing.T) {
 	event, err := NewCloudEvent("//testing/client", "", map[string]string{"heading": "for tomorrow"})
 	assert.NoError(t, err)
 
+	_, err = cc.Produce(ctx, Request{testutil.Topic(200), event, "134", nil}) //
+	assert.NoError(t, err)
+
+	// test with empty header map
 	_, err = cc.Produce(ctx, Request{testutil.Topic(200), event, "134", hm}) // struct that can be unmarshalled
 	assert.NoError(t, err)
 
@@ -63,7 +67,6 @@ func TestProduceMessageOK(t *testing.T) {
 	opts.ProducerAPIKey = ""
 	opts.ProducerAPISecret = ""
 	opts.DumpMessages = true
-
 	cc = NewClient(opts)
 	_, err = cc.Produce(ctx, json) // should fail since api key / secret are empty
 	assert.ErrorContains(t, err, "unexpected http")
