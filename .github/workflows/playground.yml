@@ -10,7 +10,7 @@ env:
 
 jobs:
   test:
-    name: Come out and play
+    name: Come out and test
     runs-on: ubuntu-latest
     steps:
       - name: Install latest rubin Kafka Record producer
@@ -23,7 +23,7 @@ jobs:
         run: |
           ${{ runner.temp }}/rubin -topic "$KAFKA_TOPIC" -key "$GITHUB_RUN_ID" -ce \
           -source "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-          -type "com.github.artifact.released" \
+          -type "net.timafe.events.ci.published" \
           -subject "rubin_0.1.4_darwin_amd64.zip" \
           -record "{\"action\":\"deploy-api\",\"repo\":\"$GITHUB_REPOSITORY\"}" \
           -header "commit=$GITHUB_SHA" -header "workflow=$GITHUB_WORKFLOW" -header "type=cloudevents"

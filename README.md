@@ -106,7 +106,7 @@ client := rubin.New(&rubin.Options{
 	ProducerAPIKey:    "1234567890",
 	ProducerAPISecret: "**********",
 })
-resp, err := cc.Produce(ctx, Record{
+resp, err := cc.Produce(context.Background(), Record{
 	Topic:   "public.hello",
 	Data:    "Dragonfly out in the sun you know what I mean",
 	Key:     "134-5678",

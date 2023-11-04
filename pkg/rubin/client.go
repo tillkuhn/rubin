@@ -11,6 +11,8 @@ import (
 	"net/http/httputil"
 	"time"
 
+	"github.com/cloudevents/sdk-go/v2/event"
+
 	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
 	"github.com/google/uuid"
 
@@ -71,13 +73,17 @@ func (c *Client) Produce(ctx context.Context, record Record) (kafkarestv3.Produc
 	keyData := c.messageKeyData(record.Key)
 	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.ProducerAPIKey, c.options.ProducerAPISecret)))
 	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, record.Topic)
-	apiHeaders := messageHeaders(record.Headers)
 
 	var kResp kafkarestv3.ProduceResponse
 	valueType, valueData, err := transformPayload(record.Data)
 	if err != nil {
 		return kResp, fmt.Errorf("%w: unable to extract paylos (%s)", errClientResponse, err.Error())
 	}
+	_, isCE := record.Data.(event.Event)
+	if isCE {
+		record.Headers["content-type"] = "application/cloudevents+json; charset=UTF-8"
+	}
+	apiHeaders := messageHeaders(record.Headers)
 	ts := time.Now().Round(time.Second)
 	payload := kafkarestv3.ProduceRequest{
 		// PartitionId: nil, // not needed
@@ -97,7 +103,7 @@ func (c *Client) Produce(ctx context.Context, record Record) (kafkarestv3.Produc
 	req.Header.Set("Content-Type", "application/json") // don't add ;charset=UTF8 or server will complain
 	req.Header.Add("Authorization", "Basic "+basicAuth)
 
-	c.logger.Infow("Push record", "url", url, "msg-len", len(payloadJSON), "headers", len(apiHeaders))
+	c.logger.Infow("Push record", "url", url, "type", fmt.Sprintf("%T", record.Data), "len", len(payloadJSON), "headers", len(apiHeaders))
 	c.checkDumpRequest(req)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
