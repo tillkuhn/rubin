@@ -24,10 +24,12 @@ type Options struct {
 	LogLevel          string        `yaml:"log_level" default:"info" required:"false" desc:"Min LogLevel debug,info,warn,error" split_words:"true"`
 }
 
+// NewOptionsFromEnvconfig uses environment configuration with default prefix "kafka" to init Options
 func NewOptionsFromEnvconfig() (*Options, error) {
 	return NewOptionsFromEnvconfigWithPrefix(envconfigDefaultPrefix)
 }
 
+// NewOptionsFromEnvconfigWithPrefix same as NewOptionsFromEnvconfig but allows custom prefix
 func NewOptionsFromEnvconfigWithPrefix(prefix string) (*Options, error) {
 	var options Options
 	if err := envconfig.Process(prefix, &options); err != nil {
@@ -36,6 +38,7 @@ func NewOptionsFromEnvconfigWithPrefix(prefix string) (*Options, error) {
 	return &options, nil
 }
 
+// String returns a String representation of the object (but hides sensitive information)
 func (o Options) String() string {
-	return fmt.Sprintf("%s/%s", o.RestEndpoint, o.ClusterID)
+	return fmt.Sprintf("%s/%s hasKey=%v hasSecret=%v", o.RestEndpoint, o.ClusterID, len(o.ProducerAPIKey) > 0, len(o.ProducerAPISecret) > 0)
 }

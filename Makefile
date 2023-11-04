@@ -66,6 +66,7 @@ test: ## Runs all tests  (with colorized output support if gotest is installed)
 	  gotest -v -coverpkg=./... -coverprofile=coverage.out ./...; \
   	else go test -v -coverpkg=./... -coverprofile=coverage.out ./...; fi
 
+.PHONY: test-int
 test-int: ## Run integration test with tag //go:build integration
 	go test --tags=integration ./...
 

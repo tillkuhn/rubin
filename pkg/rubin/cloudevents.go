@@ -7,29 +7,23 @@ import (
 	"github.com/google/uuid"
 )
 
-// Old Event Format
-// type Event struct {
-//	Action  string `json:"action,omitempty"`
-//	Message string `json:"message,omitempty"`
-//	// the time is  a quoted string in RFC 3339 format, with sub-second precision added if present."
-//	Time     time.Time `json:"time,omitempty"`
-//	Source   string    `json:"source,omitempty"`
-//	EntityID string    `json:"entityId,omitempty"`
-//}
-
 // NewCloudEvent returns a cloud event initialized with default data and payload based on data map,
 // source and type are required arguments
 // data could be data map[string]string or some struct, as long as it can be JSON-serialized
 //
-//	event, err := NewCloudEvent("//testing/event", "", m)
+//	event, err := NewCloudEvent("//testing/event", "my.event.type", data)
 //	subject := "my.subject"
 //
-// inspired by official Go SDK for CloudEvents https://github.com/cloudevents/sdk-go
+// Inspired by official Go SDK for CloudEvents https://github.com/cloudevents/sdk-go
+// Specs:
+// - Detailed attribute descriptions: https://github.com/cloudevents/spec/blob/v1.0/spec.md#event-format
+// - JSON specific https://github.com/cloudevents/spec/blob/main/cloudevents/formats/json-format.md
+// - Actual JSON Schema: https://github.com/cloudevents/spec/blob/main/cloudevents/formats/cloudevents.json
 //
-// Spec: https://github.com/cloudevents/spec/blob/main/cloudevents/formats/json-format.md
-// Real World Examples: https://cloud.google.com/eventarc/docs/workflows/cloudevents
-// More from Google: https://github.com/googleapis/google-cloudevents/tree/main/examples/structured
-// JSON Schema: https://github.com/cloudevents/spec/blob/main/cloudevents/formats/cloudevents.json
+// Real World Examples:
+// - https://cloud.google.com/eventarc/docs/workflows/cloudevents
+// - https://github.com/googleapis/google-cloudevents/tree/main/examples/structured
+
 func NewCloudEvent(sourceURI string, eventType string, data interface{}) (cloudevents.Event, error) {
 	event := cloudevents.NewEvent()
 
@@ -69,3 +63,13 @@ func NewCloudEvent(sourceURI string, eventType string, data interface{}) (cloude
 	}
 	return event, nil
 }
+
+// Old Event Format
+// type Event struct {
+//	Action  string `json:"action,omitempty"`
+//	Message string `json:"message,omitempty"`
+//	// the time is  a quoted string in RFC 3339 format, with sub-second precision added if present."
+//	Time     time.Time `json:"time,omitempty"`
+//	Source   string    `json:"source,omitempty"`
+//	EntityID string    `json:"entityId,omitempty"`
+//}

@@ -103,7 +103,7 @@ client := rubin.New(&rubin.Options{
 	ProducerAPIKey:    "1234567890",
 	ProducerAPISecret: "**********",
 })
-resp, err := cc.Produce(context.Background(), Record{
+resp, err := cc.Produce(context.Background(), Request{
 	Topic:   "public.hello",
 	Data:    "Dragonfly out in the sun you know what I mean",
 	Key:     "134-5678",
@@ -151,7 +151,7 @@ Resulting event structure (CLI example code)
  }
 ```
 
-## Why the funky name?
+## 🎸 Why the funky name?
 
 Initially I thought of technical names like `kafka-record-prodcer` or `topic-pusher`, but all of them turned out to be pretty boring. [Rick Rubin](https://en.wikipedia.org/wiki/Rick_Rubin) was simply the first name that showed up when I googled for "famous record producers", so I named the tool in his honour, and also in honour of the great Albums he produced in the past decades.
 
