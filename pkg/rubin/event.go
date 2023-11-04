@@ -38,9 +38,10 @@ func NewCloudEvent(sourceURI string, eventType string, subject string, data inte
 	// "mailto:cncf-wg-serverless@lists.cncf.io", "urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66"
 	event.SetSource(sourceURI)
 
-	// "Describes the type of event related to the originating occurrence.",
-	//  "com.github.pull_request.opened" or "com.example.object.deleted.v2"
-	event.SetType(eventType)
+	// Describes the type of event related to the originating occurrence.
+	// Examples: "com.github.pull_request.opened" or "com.example.object.deleted.v2"
+	// or "google.cloud.pubsub.topic.v1.messagePublished", "google.cloud.storage.object.v1.finalized"
+	event.SetType(eventType) // "net.timafe.events.ci.published.v1"
 
 	// Optional "Describes the subject of the event in the context of the event producer (identified by source).",
 	// e.g. "newfile.jpg"

@@ -24,17 +24,18 @@ Initially I thought of technical names like `kafka-record-prodcer` or `topic-pus
 
 Grap the most recent release from the [releases page](https://github.com/tillkuhn/rubin/releases)
 
-Configure Environment
+Configure Environment (see *help* section below for optional args)
 
 ```
-$ printenv | grep -e ^RUBIN
+$ printenv | grep -e ^KAFKA
+
 KAFKA_REST_ENDPOINT=https://localhost:443
 KAFKA_PRODUCER_API_KEY=1234567890
 KAFKA_CLUSTER_ID=abc-r2d2
 KAFKA_PRODUCER_API_SECRET=********
 ```
 
-Run the standalone binary
+Run the standalone binary (simple example with string message)
 
 ```
 $ rubin -topic public.hello -record "Dragonfly out in the sun you know what I mean"
@@ -43,6 +44,12 @@ $ rubin -topic public.hello -record "Dragonfly out in the sun you know what I me
 9:49PM	INFO	rubin/client.go:27	Kafka REST Proxy Client configured  {"endpoint": "https://localhost:443", "useSecret": true}
 9:49PM	INFO	rubin/client.go:53	Push record  {"url": "https://localhost.cloud:443/kafka/v3/clusters/abc-r2d2/topics/public.hello/records"}
 9:49PM	INFO	rubin/client.go:84	Record committed  {"status": "topic", "public.hello": 200, "offset": 43, "partition": 0}
+```
+
+Example with JSON Payload, custom message key and multiple message headers
+
+```
+$ rubin -topic public.hello -record '{"msg":"hello"}' -key "123" -header "source=ci" -header "mood=good"
 ```
 
 Get Help on CLI arguments and environment configuration
