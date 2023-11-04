@@ -62,15 +62,15 @@ func main() {
 
 func run() error {
 	// Parse cli args, 	skip if !flag.Parsed() check
-	ce := flag.Bool("ce", false, "Use cloudevents format (default: STRING or JSON)")
-	help := flag.Bool("help", false, "Display help")
-	key := flag.String("key", "", "Key for the message (optional, default is generated uuid)")
-	record := flag.String("record", "", "Record to send to the topic")
-	source := flag.String("source", "rubin/cli", "Identifies the context in which an event happened (CE)")
-	subject := flag.String("subject", "", "Describes the subject of the event in the context of the event producer")
-	topic := flag.String("topic", "", "Kafka topic name to push records")
-	eType := flag.String("type", "com.github.cloudevents.Event", "Describes the type of event related to the originating occurrence")
-	verbosity := flag.String("v", "info", "Verbosity")
+	ce := flag.Bool("ce", false, "CloudEvents format for event payload (default: STRING or JSON)")
+	help := flag.Bool("help", false, "Display this help")
+	key := flag.String("key", "", "Kafka Message Key (optional, default is generated uuid)")
+	record := flag.String("record", "", "Request payload to send into the Kafka Topic")
+	source := flag.String("source", "rubin/cli", "CloudEventy: The context in which an event happened")
+	subject := flag.String("subject", "", "CloudEventy: The subject of the event in the context of the event producer")
+	topic := flag.String("topic", "", "Name of target Kafka Topic")
+	eType := flag.String("type", "event.Event", "CloudEvents: Type of event related to the originating occurrence")
+	verbosity := flag.String("v", "info", "Verbosity, one of 'debug', 'info', 'warn', 'error'")
 	var headers arrayFlags
 	flag.Var(&headers, "header", "Header formatted as key=value, can be used multiple times")
 
@@ -118,7 +118,7 @@ func run() error {
 	// overwrite selected options based on CLI args
 	options.LogLevel = *verbosity
 	client := rubin.NewClient(options)
-	if _, err := client.Produce(context.Background(), rubin.Record{
+	if _, err := client.Produce(context.Background(), rubin.Request{
 		Topic:   *topic,
 		Data:    payloadData,
 		Key:     *key,

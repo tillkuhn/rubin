@@ -30,7 +30,7 @@ func TestProduceMessageOK(t *testing.T) {
 	cc := NewClient(opts)
 	assert.NotEmpty(t, cc.String())
 
-	resp, err := cc.Produce(ctx, Record{
+	resp, err := cc.Produce(ctx, Request{
 		Topic:   "public.hello",
 		Data:    "Dragonfly out in the sun you know what I mean",
 		Key:     "134-5678",
@@ -44,16 +44,16 @@ func TestProduceMessageOK(t *testing.T) {
 	// test with default timeout and debug = true and empty key
 	opts.HTTPTimeout = 0
 	cc = NewClient(opts)
-	_, err = cc.Produce(ctx, Record{testutil.Topic, "Hello Hase!", "", hm}) // Simple String
+	_, err = cc.Produce(ctx, Request{testutil.Topic, "Hello Hase!", "", hm}) // Simple String
 	assert.NoError(t, err)
-	json := Record{testutil.Topic, `{"example": 1}`, "134", hm}
+	json := Request{testutil.Topic, `{"example": 1}`, "134", hm}
 	_, err = cc.Produce(ctx, json) // valid json
 	assert.NoError(t, err)
 
 	event, err := NewCloudEvent("//testing/client", et, "", map[string]string{"heading": "for tomorrow"})
 	assert.NoError(t, err)
 
-	_, err = cc.Produce(ctx, Record{testutil.Topic, event, "134", hm}) // struct that can be unmarshalled
+	_, err = cc.Produce(ctx, Request{testutil.Topic, event, "134", hm}) // struct that can be unmarshalled
 	assert.NoError(t, err)
 
 	// test without auth (mock should return 401 is no user and pw and submitted in auth header

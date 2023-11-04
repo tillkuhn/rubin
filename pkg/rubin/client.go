@@ -37,14 +37,6 @@ type Client struct {
 	logger     zap.SugaredLogger
 }
 
-// Record holds the data to build the Kafka Message Payload plus optional Key and Headers
-type Record struct {
-	Topic   string
-	Data    interface{}
-	Key     string
-	Headers map[string]string
-}
-
 // NewClient returns a new Rubin Client for http interaction
 func NewClient(options *Options) *Client {
 	logger := log.NewAtLevel(options.LogLevel)
@@ -62,11 +54,25 @@ func NewClient(options *Options) *Client {
 	}
 }
 
+// Request holds the data to build the Kafka Message Payload plus optional Key and Headers
+type Request struct {
+	Topic   string
+	Data    interface{}
+	Key     string
+	Headers map[string]string
+}
+
+// Response Wrapper around the external ProduceResponse
+type Response struct {
+	ErrorCode int `json:"error_code"`
+	kafkarestv3.ProduceResponse
+}
+
 func (c *Client) String() string {
 	return fmt.Sprintf("rubin-http-client@%s/%s", c.options.RestEndpoint, c.options.ClusterID)
 }
 
-func (c *Client) Produce(ctx context.Context, record Record) (kafkarestv3.ProduceResponse, error) {
+func (c *Client) Produce(ctx context.Context, record Request) (Response, error) {
 	defer func() {
 		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
 	}()
@@ -74,7 +80,7 @@ func (c *Client) Produce(ctx context.Context, record Record) (kafkarestv3.Produc
 	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.ProducerAPIKey, c.options.ProducerAPISecret)))
 	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, record.Topic)
 
-	var kResp kafkarestv3.ProduceResponse
+	var kResp Response
 	valueType, valueData, err := transformPayload(record.Data)
 	if err != nil {
 		return kResp, fmt.Errorf("%w: unable to extract paylos (%s)", errClientResponse, err.Error())
@@ -125,7 +131,7 @@ func (c *Client) Produce(ctx context.Context, record Record) (kafkarestv3.Produc
 		return kResp, errors.Wrap(err, fmt.Sprintf("unexpected topic api response: %s", string(body)))
 	}
 	// todo check if kResp.ErrorCode != http.StatusOK (  "error_code": 200 ), but ErrorCode ist not in ProduceResponse
-	c.logger.Infow("Record successfully committed", "key", kResp.Key, "topic", kResp.TopicName, "offset", kResp.Offset, "partition", kResp.PartitionId)
+	c.logger.Infow("Request successfully committed", "code", kResp.ErrorCode, "key", kResp.Key, "topic", kResp.TopicName, "offset", kResp.Offset, "partition", kResp.PartitionId)
 
 	return kResp, nil
 }
