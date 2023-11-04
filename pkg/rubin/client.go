@@ -169,6 +169,7 @@ func messageHeaders(hm map[string]string) []kafkarestv3.ProduceRequestHeader {
 }
 
 // transformPayload inspects the payload, determines the valueType and handles JSON Strings
+// returned valueType is either STRING or JSON
 func transformPayload(data interface{}) (valueType string, valueData interface{}, err error) {
 	s, isString := data.(string)
 	switch {
@@ -180,11 +181,11 @@ func transformPayload(data interface{}) (valueType string, valueData interface{}
 		}
 	case isString:
 		valueType = "STRING"
-		// "value":{"type":"STRING","data":"Hello String!"}
+		// marshals to string value "value":{"type":"STRING","data":"Hello String!"} }
 		valueData = data
 	default:
 		valueType = "JSON"
-		// real json "value":{"type":"JSON","data":{"action":"update/event",
+		// marshals to json in json "value":{"type":"JSON","data":{"action":"update/event",
 		valueData = data
 	}
 	return valueType, valueData, nil

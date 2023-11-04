@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,9 +42,15 @@ func TestNewCloudEvent(t *testing.T) {
 	bytes, err = json.MarshalIndent(event, "", "  ")
 	assert.NoError(t, err)
 	assert.True(t, len(bytes) > 0)
+	assert.Equal(t, event.DataContentType(), cloudevents.ApplicationJSON)
 	// t.Log("\nJSON STRING:" + string(bytes))
 
 	// test with no data (which is optional)
 	event, err = NewCloudEvent("//testing/event", "your.subject", nil)
 	assert.NoError(t, err)
+
+	// test with simple string
+	event, err = NewCloudEvent("//testing/event", "your.subject", "this is a string")
+	assert.NoError(t, err)
+	assert.Equal(t, event.DataContentType(), cloudevents.TextPlain)
 }

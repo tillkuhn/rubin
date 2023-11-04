@@ -49,14 +49,17 @@ func NewCloudEvent(sourceURI string, eventType string, data interface{}) (cloude
 
 	// data is optional ...
 	if data != nil {
-		_, payload, err := transformPayload(data)
+		vType, payload, err := transformPayload(data)
 
 		if err != nil {
 			return event, err
 		}
 
-		// the actual event payload
-		err = event.SetData(cloudevents.ApplicationJSON, payload) // data content type
+		cType := cloudevents.ApplicationJSON
+		if vType == "STRING" {
+			cType = cloudevents.TextPlain
+		}
+		err = event.SetData(cType, payload) // data content type
 		if err != nil {
 			return event, err
 		}
