@@ -5,6 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/tillkuhn/rubin)](https://goreportcard.com/report/github.com/tillkuhn/rubin)
 [![Go Reference](https://pkg.go.dev/badge/github.com/tillkuhn/rubin.svg)](https://pkg.go.dev/github.com/tillkuhn/rubin)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=tillkuhn_rubin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=tillkuhn_rubin)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=tillkuhn_rubin&metric=coverage)](https://sonarcloud.io/component_measures?id=tillkuhn_rubin&metric=coverage&view=list)
 [![Latest Release](https://img.shields.io/github/v/release/tillkuhn/rubin?include_prereleases)](https://github.com/tillkuhn/rubin/releases)
 
 ## Introduction
@@ -48,7 +49,8 @@ Get Help on CLI arguments and environment configuration
 
 ```
 $ rubin -help
-Welcome to rubin v0.0.10 built now (b616ac2)
+
+Welcome to rubin v0.1.5 built now by go (b368bf8)
 
 This application is configured via the environment. The following environment
 variables can be used:
@@ -63,14 +65,24 @@ KAFKA_DUMP_MESSAGES          True or False    false      false       Print http 
 KAFKA_LOG_LEVEL              String           info       false       Min LogLevel debug,info,warn,error
 
 In addition,the following CLI arguments
+  -ce
+    	Use cloudevents format (default: STRING or JSON)
+  -header value
+    	Header formatted as key=value, can be used multiple times
   -help
     	Display help
   -key string
     	Key for the message (optional, default is generated uuid)
   -record string
     	Record to send to the topic
+  -source string
+    	Identifies the context in which an event happened (CE) (default "rubin/cli")
+  -subject string
+    	Describes the subject of the event in the context of the event producer
   -topic string
     	Kafka topic name to push records
+  -type string
+    	Describes the type of event related to the originating occurrence (default "com.github.cloudevents.Event")
   -v string
     	Verbosity (default "info")
 ```
@@ -82,12 +94,13 @@ go get github.com/tillkuhn/rubin
 ```
 ```
 client := rubin.New(&rubin.Options{
-	RestEndpoint: "https://localhost:443",
-	ClusterID:    "abc-r2d2",
-	ProducerAPIKey: "1234567890",
+	RestEndpoint:      "https://localhost:443",
+	ClusterID:         "abc-r2d2",
+	ProducerAPIKey:    "1234567890",
 	ProducerAPISecret: "**********",
 })
-resp, err := client.Produce(context.Background(), "toppic", "", "Hello there!)
+resp, err := client.Produce(context.Background(), "toppig", "some/key", "Dragonfly out in the sun you know what I mean!)
+fmt.Printf("Record successfully commited, offset=%d partition=%d\n", resp.Offset, resp.PartitionId)
 ```
 
 ### Use as docker image
