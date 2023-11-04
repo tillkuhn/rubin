@@ -11,7 +11,7 @@ import (
 
 func TestRunMainMessageProducer(t *testing.T) {
 	os.Clearenv()
-	os.Args = []string{"noop", "-topic", testutil.Topic(200), "-record", "Horst Tester", "-header", "id=1", "-source", "open/source"}
+	os.Args = []string{"noop", "-topic", testutil.Topic(200), "-record", "Horst Tester", "-header", "id=1", "-source", "open/source", "-ce"}
 	mock := testutil.ServerMock()
 	_ = os.Setenv("KAFKA_REST_ENDPOINT", mock.URL)
 	_ = os.Setenv("KAFKA_CLUSTER_ID", testutil.ClusterID)
@@ -19,6 +19,13 @@ func TestRunMainMessageProducer(t *testing.T) {
 	_ = os.Setenv("KAFKA_PRODUCER_API_SECRET", "friedrich")
 	err := run()
 	assert.NoError(t, err)
+
+	// Test simple string
+	resetEnvAndFlags()
+	os.Args = []string{"noop", "-topic", testutil.Topic(200), "-record", "This is a simple string"}
+	err = run()
+	assert.NoError(t, err)
+
 }
 
 func TestHelp(t *testing.T) {
