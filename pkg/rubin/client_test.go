@@ -28,8 +28,14 @@ func TestProduceMessageOK(t *testing.T) {
 		DumpMessages: true,
 	}
 	cc := NewClient(opts)
-	// strings.NewReader("hello world")
-	resp, err := cc.Produce(ctx, testutil.Topic, "1234", "Hello Hase!", hm)
+	assert.NotEmpty(t, cc.String())
+
+	resp, err := cc.Produce(ctx, Record{
+		Topic:   "public.hello",
+		Data:    "Dragonfly out in the sun you know what I mean",
+		Key:     "134-5678",
+		Headers: map[string]string{"heading": "for tomorrow"},
+	})
 	assert.NoError(t, err)
 	assert.Equal(t, int32(42), resp.Offset)
 	assert.NotNil(t, resp.Timestamp)
@@ -38,15 +44,16 @@ func TestProduceMessageOK(t *testing.T) {
 	// test with default timeout and debug = true and empty key
 	opts.HTTPTimeout = 0
 	cc = NewClient(opts)
-	_, err = cc.Produce(ctx, "public.welcome", "", "Hello Hase!", hm) // Simple String
+	_, err = cc.Produce(ctx, Record{testutil.Topic, "Hello Hase!", "", hm}) // Simple String
 	assert.NoError(t, err)
-	_, err = cc.Produce(ctx, "public.welcome", "", `{"example": 1}`, hm) // valid json
+	json := Record{testutil.Topic, `{"example": 1}`, "134", hm}
+	_, err = cc.Produce(ctx, json) // valid json
 	assert.NoError(t, err)
 
 	event, err := NewCloudEvent("//testing/client", et, "", map[string]string{"heading": "for tomorrow"})
 	assert.NoError(t, err)
 
-	_, err = cc.Produce(ctx, "public.welcome", "abc/123", event, hm) // struct that can be unmarshalled
+	_, err = cc.Produce(ctx, Record{testutil.Topic, event, "134", hm}) // struct that can be unmarshalled
 	assert.NoError(t, err)
 
 	// test without auth (mock should return 401 is no user and pw and submitted in auth header
@@ -55,6 +62,6 @@ func TestProduceMessageOK(t *testing.T) {
 	opts.DumpMessages = true
 
 	cc = NewClient(opts)
-	_, err = cc.Produce(ctx, "public.welcome", "", "Hello Hase!", hm) // Simple String
+	_, err = cc.Produce(ctx, json) // should fail since api key / secret are empty
 	assert.ErrorContains(t, err, "unexpected http")
 }

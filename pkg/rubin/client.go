@@ -35,6 +35,14 @@ type Client struct {
 	logger     zap.SugaredLogger
 }
 
+// Record holds the data to build the Kafka Message Payload plus optional Key and Headers
+type Record struct {
+	Topic   string
+	Data    interface{}
+	Key     string
+	Headers map[string]string
+}
+
 // NewClient returns a new Rubin Client for http interaction
 func NewClient(options *Options) *Client {
 	logger := log.NewAtLevel(options.LogLevel)
@@ -56,17 +64,17 @@ func (c *Client) String() string {
 	return fmt.Sprintf("rubin-http-client@%s/%s", c.options.RestEndpoint, c.options.ClusterID)
 }
 
-func (c *Client) Produce(ctx context.Context, topic string, key string, data interface{}, hm map[string]string) (kafkarestv3.ProduceResponse, error) {
+func (c *Client) Produce(ctx context.Context, record Record) (kafkarestv3.ProduceResponse, error) {
 	defer func() {
 		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
 	}()
-	keyData := c.messageKeyData(key)
+	keyData := c.messageKeyData(record.Key)
 	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.ProducerAPIKey, c.options.ProducerAPISecret)))
-	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, topic)
-	apiHeaders := messageHeaders(hm)
+	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, record.Topic)
+	apiHeaders := messageHeaders(record.Headers)
 
 	var kResp kafkarestv3.ProduceResponse
-	valueType, valueData, err := transformPayload(data)
+	valueType, valueData, err := transformPayload(record.Data)
 	if err != nil {
 		return kResp, fmt.Errorf("%w: unable to extract paylos (%s)", errClientResponse, err.Error())
 	}

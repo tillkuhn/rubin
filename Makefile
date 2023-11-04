@@ -69,6 +69,8 @@ test: ## Runs all tests  (with colorized output support if gotest is installed)
 test-int: ## Run integration test with tag //go:build integration
 	go test --tags=integration ./...
 
+test-all: test test-int lint ## Run unit + integration tests and ci-lint
+
 coverage: out/report.json ## Displays coverage per func on cli
 	go tool cover -func=out/cover.out
 	@go tool cover -func cover.out | grep "total:"

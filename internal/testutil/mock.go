@@ -10,7 +10,7 @@ import (
 const (
 	sampleDir = "../../testdata"
 	ClusterID = "abc-r2d2"
-	Topic     = "public.welcome"
+	Topic     = "public.hello"
 )
 
 func ServerMock(responseCode int) *httptest.Server {

@@ -8,8 +8,8 @@ package rubin
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/tillkuhn/rubin/internal/testutil"
 	"gopkg.in/yaml.v3"
 	"os"
 	"testing"
@@ -21,10 +21,9 @@ const (
 )
 
 func TestProduceMessageRealConfluentAPI(t *testing.T) {
-	topic := "public.hello"
 
 	ctx := context.Background()
-	id := uuid.New().String()
+	// id := uuid.New().String()
 
 	intOptions, err := initOptions()
 	if err != nil {
@@ -36,10 +35,11 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	// This should succeed
 	cc := NewClient(intOptions)
 	hm := map[string]string{"heading": "for tomorrow"}
-	resp, err := cc.Produce(ctx, topic, id, payloadData, hm)
+	rd := Record{testutil.Topic, payloadData, "134", hm}
+	resp, err := cc.Produce(ctx, rd)
 	assert.NoError(t, err)
 	assert.Greater(t, resp.Offset, int32(0))
-	assert.Equal(t, topic, resp.TopicName)
+	assert.Equal(t, testutil.Topic, resp.TopicName)
 
 	// this should also succeed
 	newCar := struct {
@@ -51,7 +51,8 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 		Model:   "Taurus",
 		Mileage: 200000,
 	}
-	resp, err = cc.Produce(ctx, topic, "my-car-123", newCar, hm)
+	rd.Data = newCar
+	resp, err = cc.Produce(ctx, rd)
 	//t.Log(string(resp))
 	// assert.Equal(t, http.StatusOK, resp.ErrorCode)
 	assert.NoError(t, err)
@@ -59,7 +60,8 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	event, err := NewCloudEvent("//testing/ci-test", "int.test", "", hm)
 	assert.NoError(t, err)
 
-	resp, err = cc.Produce(ctx, topic, "event-123", event, hm)
+	rd.Data = event
+	resp, err = cc.Produce(ctx, rd)
 	assert.NoError(t, err)
 
 	// This will fail (wrong password)
@@ -71,7 +73,7 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 		HTTPTimeout:       1 * time.Second,
 		DumpMessages:      true,
 	})
-	resp, err = cc.Produce(ctx, topic, id, payloadData, hm)
+	resp, err = cc.Produce(ctx, rd)
 	// assert.Equal(t, http.StatusUnauthorized, resp.ErrorCode)
 	assert.ErrorContains(t, err, "unexpected http")
 	assert.Empty(t, resp.TopicName)

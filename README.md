@@ -99,7 +99,12 @@ client := rubin.New(&rubin.Options{
 	ProducerAPIKey:    "1234567890",
 	ProducerAPISecret: "**********",
 })
-resp, err := client.Produce(context.Background(), "toppig", "some/key", "Dragonfly out in the sun you know what I mean")
+resp, err := cc.Produce(ctx, Record{
+	Topic:   "public.hello",
+	Data:    "Dragonfly out in the sun you know what I mean",
+	Key:     "134-5678",
+	Headers: map[string]string{"heading": "for tomorrow"},
+})
 fmt.Printf("Record successfully commited, offset=%d partition=%d\n", resp.Offset, resp.PartitionId)
 ```
 

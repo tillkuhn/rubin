@@ -118,7 +118,12 @@ func run() error {
 	// overwrite selected options based on CLI args
 	options.LogLevel = *verbosity
 	client := rubin.NewClient(options)
-	if _, err := client.Produce(context.Background(), *topic, *key, payloadData, headerMap); err != nil {
+	if _, err := client.Produce(context.Background(), rubin.Record{
+		Topic:   *topic,
+		Data:    payloadData,
+		Key:     *key,
+		Headers: headerMap,
+	}); err != nil {
 		return err
 	}
 	return nil
