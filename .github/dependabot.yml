@@ -11,3 +11,10 @@ updates:
     assignees:
       - "tillkuhn"
     open-pull-requests-limit: 6
+
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    rebase-strategy: "disabled"     # Disable rebasing for GH actions
+    schedule:
+      interval: "monthly"
