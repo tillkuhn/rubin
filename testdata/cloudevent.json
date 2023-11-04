@@ -1,12 +1,28 @@
 {
-  "specversion": "1.0",
-  "id": "8ea6bfba-3312-4d9e-9765-1eca0cd14c69",
-  "source": "example/uri",
-  "type": "example.type",
-  "datacontenttype": "application/json",
-  "time": "2023-11-03T14:07:30.95108Z",
-  "data": {
-    "action": "test/me",
-    "message": "test output"
-  }
-}
+  "headers": [
+    {
+      "name": "content-type",
+      "value": "YXBwbGljYXRpb24vY2xvdWRldmVudHMranNvbjsgY2hhcnNldD1VVEYtOA=="
+    }
+  ],
+  "key": {
+    "type": "BINARY",
+    "data": "ZmVkZmE0ZDktMGNiOC00MzBiLTlkNWYtYzgwMjVjOGFjNTdk"
+  },
+  "value": {
+    "type": "JSON",
+    "data": {
+      "specversion": "1.0",
+      "id": "5b4eefde-bf4a-4d48-8f47-e2978df8d139",
+      "source": "rubin/makefile",
+      "type": "com.github.cloudevents.Event",
+      "subject": "my.subject",
+      "datacontenttype": "application/json",
+      "time": "2023-11-04T14:11:33Z",
+      "data": {
+        "message": "Hello Franz!"
+      }
+    }
+  },
+  "timestamp": "2023-11-04T15:11:33+01:00"
+}Dump HTTP-Response:

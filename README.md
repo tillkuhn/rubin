@@ -10,16 +10,16 @@
 
 ## Introduction
 
-*rubin* is basically a thin wrapper around the [Confluent  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to produce 
-event records for an existing Kafka Topic. It's written in Go and uses just plain http communication, a couple of environment variables and CLI switches.
+*rubin* is a thin wrapper around the [Confluent  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to produce 
+structured event records into an existing Kafka Topic. 
+
+It's written in Go, can be used as a CLI standalone binary or as a library, and uses just plain http communication.
 
 ## Installation and usage
 
 ### Use as standalone CLI
 
-Grap the most recent release from the [releases page](https://github.com/tillkuhn/rubin/releases)
-
-Configure Environment (see *help* section below for optional args)
+Grap the most recent release from the [releases page](https://github.com/tillkuhn/rubin/releases) and make sure your environment is configured properly (see *help* section below for additional optional args)
 
 ```
 $ printenv | grep -e ^KAFKA
@@ -110,12 +110,37 @@ resp, err := cc.Produce(context.Background(), Record{
 fmt.Printf("Record successfully commited, offset=%d partition=%d\n", resp.Offset, resp.PartitionId)
 ```
 
-### Use as docker image
+### 🐳 Use as docker image
 
 Released vaultpal versions are build for multiple architectures and pushed to the public GitHub Container Registry (https://ghcr.io).
 
 ```
 docker run --rm ghcr.io/tillkuhn/rubin:v0.1.2 -help
+```
+
+## ☁️ Support for *CloudEvents*
+
+In Addition to simple string records and json payloads, *rubin* also supports [CloudEvents](https://cloudevents.io/), a "a specification for describing event data in common formats to provide interoperability across services, platforms and systems", hosted by the [Cloud Native Computing Foundation](https://www.cncf.io/). See the `-ce` switch and the [JSON Spec for CloudEvents](https://github.com/cloudevents/spec/blob/main/cloudevents/formats/json-format.md) for more details.
+
+```
+$ rubin -topic public.hello -record '{"action":"push"}' \
+    -ce -type "events.published" -source "/ci/build/123" -subject "artifact.zip"
+```
+
+
+```
+{
+  "specversion": "1.0",
+  "id": "5b4eefde-bf4a-4d48-8f47-e2978df8d139",
+  "source": "/ci/build/123",
+  "type": "events.published",
+  "subject": "artifact.zip",
+  "datacontenttype": "application/json",
+  "time": "2023-11-04T14:11:33Z",
+  "data": {
+	"action": "push"
+  }
+ }
 ```
 
 ## Why the funky name?
