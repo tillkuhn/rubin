@@ -13,11 +13,6 @@
 *rubin* is basically a thin wrapper around the [Confluent  REST Proxy API (v3)](https://docs.confluent.io/platform/current/kafka-rest/api.html#records-v3) that makes it easy to produce 
 event records for an existing Kafka Topic. It's written in Go and uses just plain http communication, a couple of environment variables and CLI switches.
 
-## Why the funky name?
-
-Initially I thought of technical names like `kafka-record-prodcer` or `topic-pusher`, but all of them turned out to be pretty boring. [Rick Rubin](https://en.wikipedia.org/wiki/Rick_Rubin) was simply the first name that showed up when I googled for "famous record producers", so I named the tool in his honour, and also in honour of the great Albums he produced in the past decades.
-
-
 ## Installation and usage
 
 ### Use as standalone CLI
@@ -123,30 +118,22 @@ Released vaultpal versions are build for multiple architectures and pushed to th
 docker run --rm ghcr.io/tillkuhn/rubin:v0.1.2 -help
 ```
 
+## Why the funky name?
+
+Initially I thought of technical names like `kafka-record-prodcer` or `topic-pusher`, but all of them turned out to be pretty boring. [Rick Rubin](https://en.wikipedia.org/wiki/Rick_Rubin) was simply the first name that showed up when I googled for "famous record producers", so I named the tool in his honour, and also in honour of the great Albums he produced in the past decades.
+
+<a href="https://de.wikipedia.org/wiki/Rick_Rubin">
+ <img src="https://upload.wikimedia.org/wikipedia/commons/archive/4/43/20210617192624%21RickRubinSept09.jpg" >
+</a>
+  
+*"Rick Rubin in September 2006" by jasontheexploder is licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)*
+
+
 ## Development
 
 The project uses `make` to make your life easier. If you're not familiar with Makefiles you can take a look at [this quickstart guide](https://makefiletutorial.com).
 
-### Help on Targets 
-
 Whenever you need help regarding the available actions, just use the following command.
-
-```bash
-make help
-```
-
-### Setup
-
-To get your setup up and running the only thing you have to do is
-
-```bash
-make all
-```
-
-This will initialize a git repo, download the dependencies in the latest versions and install all needed tools.
-If needed code generation will be triggered in this target as well.
-
-### Other targets
 
 ```
 $ make help
@@ -174,7 +161,7 @@ test-int             Run integration test with tag //go:build integration
 tidy                 Cleans up go.mod and go.sum
 ```
 
-### API stability
+## API stability
 
 The package API for rubin is still version zero and therefore not yet considered stable as described in [gopkg.in](https://gopkg.in)
 
