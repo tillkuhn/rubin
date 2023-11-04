@@ -7,7 +7,9 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 ENV GOARCH=amd64
 WORKDIR /src
-COPY go.* .
+# avoid go.* (sonar security issue)
+COPY go.mod .
+COPY go.sum .
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 
