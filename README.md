@@ -103,7 +103,7 @@ client := rubin.New(&rubin.Options{
 	ProducerAPIKey:    "1234567890",
 	ProducerAPISecret: "**********",
 })
-resp, err := cc.Produce(context.Background(), Request{
+resp, err := client.Produce(context.Background(), Request{
 	Topic:   "public.hello",
 	Data:    "Dragonfly out in the sun you know what I mean",
 	Key:     "134-5678",
@@ -132,8 +132,8 @@ $ rubin -topic public.hello -record '{"action":"push"}' \
 CloudEvents with library
 ```
 payload := map[string]string{"user": "james.bond", "id": "007"}
-event, err = NewCloudEvent("//hr/manager", "user.created", payload)
-resp, err := cc.Produce(ctx, Request{ "app.user",  event})
+event, err = rubin.NewCloudEvent("//hr/manager", "user.created", payload)
+resp, err := client.Produce(ctx, Request{ "app.user",  event})
 ```
 Resulting event structure (CLI example code)
 ```
