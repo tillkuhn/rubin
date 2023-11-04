@@ -37,7 +37,7 @@ KAFKA_PRODUCER_API_SECRET=********
 Run the standalone binary
 
 ```
-$ rubin -topic public.hello -record "Hello Franz!"
+$ rubin -topic public.hello -record "Dragonfly out in the sun you know what I mean"
 
 9:49PM	INFO	rubin/main.go:60	Welcome to rubin  {"version": "v0.0.5", "built": "now", "commit": "7759eb6"}
 9:49PM	INFO	rubin/client.go:27	Kafka REST Proxy Client configured  {"endpoint": "https://localhost:443", "useSecret": true}
@@ -99,7 +99,7 @@ client := rubin.New(&rubin.Options{
 	ProducerAPIKey:    "1234567890",
 	ProducerAPISecret: "**********",
 })
-resp, err := client.Produce(context.Background(), "toppig", "some/key", "Dragonfly out in the sun you know what I mean!)
+resp, err := client.Produce(context.Background(), "toppig", "some/key", "Dragonfly out in the sun you know what I mean")
 fmt.Printf("Record successfully commited, offset=%d partition=%d\n", resp.Offset, resp.PartitionId)
 ```
 
