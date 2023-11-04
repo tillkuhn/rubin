@@ -63,8 +63,8 @@ out/lint.xml: $(GOLANGCI_LINT) out download
 #@go test $(ARGS) ./...
 test: ## Runs all tests  (with colorized output support if gotest is installed)
 	@if hash gotest 2>/dev/null; then \
-	  gotest -v -coverpkg=./... -coverprofile=cover.out ./...; \
-  	else go test -v -coverpkg=./... -coverprofile=cover.out ./...; fi
+	  gotest -v -coverpkg=./... -coverprofile=coverage.out ./...; \
+  	else go test -v -coverpkg=./... -coverprofile=coverage.out ./...; fi
 
 test-int: ## Run integration test with tag //go:build integration
 	go test --tags=integration ./...
