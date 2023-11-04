@@ -11,22 +11,26 @@ import (
 // type Event struct {
 //	Action  string `json:"action,omitempty"`
 //	Message string `json:"message,omitempty"`
-//	// Time.MarshalJSON returns
-//	// Time is  a quoted string in RFC 3339 format, with sub-second precision added if present."
+//	// the time is  a quoted string in RFC 3339 format, with sub-second precision added if present."
 //	Time     time.Time `json:"time,omitempty"`
 //	Source   string    `json:"source,omitempty"`
 //	EntityID string    `json:"entityId,omitempty"`
 //}
 
 // NewCloudEvent returns a cloud event initialized with default data and payload based on data map,
-// inspired by official Go SDK for CloudEvents https://github.com/cloudevents/sdk-go
-//
+// source and type are required arguments
 // data could be data map[string]string or some struct, as long as it can be JSON-serialized
+//
+//	event, err := NewCloudEvent("//testing/event", "", m)
+//	subject := "my.subject"
+//
+// inspired by official Go SDK for CloudEvents https://github.com/cloudevents/sdk-go
 //
 // Spec: https://github.com/cloudevents/spec/blob/main/cloudevents/formats/json-format.md
 // Real World Examples: https://cloud.google.com/eventarc/docs/workflows/cloudevents
+// More from Google: https://github.com/googleapis/google-cloudevents/tree/main/examples/structured
 // JSON Schema: https://github.com/cloudevents/spec/blob/main/cloudevents/formats/cloudevents.json
-func NewCloudEvent(sourceURI string, eventType string, subject string, data interface{}) (cloudevents.Event, error) {
+func NewCloudEvent(sourceURI string, eventType string, data interface{}) (cloudevents.Event, error) {
 	event := cloudevents.NewEvent()
 
 	// Set event context, required: ["id", "source", "specversion", "type"]
@@ -43,22 +47,25 @@ func NewCloudEvent(sourceURI string, eventType string, subject string, data inte
 	// or "google.cloud.pubsub.topic.v1.messagePublished", "google.cloud.storage.object.v1.finalized"
 	event.SetType(eventType) // "net.timafe.events.ci.published.v1"
 
-	// Optional "Describes the subject of the event in the context of the event producer (identified by source).",
-	// e.g. "newfile.jpg"
-	if subject != "" {
-		event.SetSubject(subject)
-	}
+	// Optional Subjects "Describes the subject of the event in the context of the event producer (identified by source).",
 
 	// "Timestamp of when the occurrence happened. Must adhere to RFC 3339.",
 	// make sure we round to .SSS (at least we had an issue when we did not round)
 	event.SetTime(time.Now().Round(time.Second))
-	_, payload, err := transformPayload(data)
 
-	if err != nil {
-		return cloudevents.Event{}, err
+	// data is optional ...
+	if data != nil {
+		_, payload, err := transformPayload(data)
+
+		if err != nil {
+			return event, err
+		}
+
+		// the actual event payload
+		err = event.SetData(cloudevents.ApplicationJSON, payload) // data content type
+		if err != nil {
+			return event, err
+		}
 	}
-
-	// the actual event payload
-	err = event.SetData(cloudevents.ApplicationJSON, payload) // data content type
-	return event, err
+	return event, nil
 }

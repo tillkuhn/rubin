@@ -130,7 +130,10 @@ func (c *Client) Produce(ctx context.Context, record Request) (Response, error) 
 	if err := json.Unmarshal(body, &kResp); err != nil {
 		return kResp, errors.Wrap(err, fmt.Sprintf("unexpected topic api response: %s", string(body)))
 	}
-	// todo check if kResp.ErrorCode != http.StatusOK (  "error_code": 200 ), but ErrorCode ist not in ProduceResponse
+	if kResp.ErrorCode != http.StatusOK {
+		// error_code must be 200, other values indicate an error but could be also 5 digit (e.g. 40301)
+		return kResp, fmt.Errorf("%w: unexpected error_code %d in response %s", errClientResponse, kResp.ErrorCode, string(body))
+	}
 	c.logger.Infow("Request successfully committed", "code", kResp.ErrorCode, "key", kResp.Key, "topic", kResp.TopicName, "offset", kResp.Offset, "partition", kResp.PartitionId)
 
 	return kResp, nil

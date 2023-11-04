@@ -9,8 +9,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/tillkuhn/rubin/internal/testutil"
 	"gopkg.in/yaml.v3"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -18,6 +18,7 @@ import (
 
 const (
 	intOptionsFile = ".test-int-options.yaml"
+	topicUnderTest = "public.hello"
 )
 
 func TestProduceMessageRealConfluentAPI(t *testing.T) {
@@ -35,11 +36,12 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	// This should succeed
 	cc := NewClient(intOptions)
 	hm := map[string]string{"heading": "for tomorrow"}
-	rd := Request{testutil.Topic, payloadData, "134", hm}
+	rd := Request{topicUnderTest, payloadData, "134", hm}
 	resp, err := cc.Produce(ctx, rd)
 	assert.NoError(t, err)
 	assert.Greater(t, resp.Offset, int32(0))
-	assert.Equal(t, testutil.Topic, resp.TopicName)
+	assert.Equal(t, topicUnderTest, resp.TopicName)
+	assert.Equal(t, http.StatusOK, resp.ErrorCode)
 
 	// this should also succeed
 	newCar := struct {
@@ -57,7 +59,7 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	// assert.Equal(t, http.StatusOK, resp.ErrorCode)
 	assert.NoError(t, err)
 
-	event, err := NewCloudEvent("//testing/ci-test", "int.test", "", hm)
+	event, err := NewCloudEvent("//testing/ci-test", "int.test", hm)
 	assert.NoError(t, err)
 
 	rd.Data = event

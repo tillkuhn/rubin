@@ -66,30 +66,32 @@ KAFKA_HTTP_TIMEOUT           Duration         10s        false       Timeout for
 KAFKA_DUMP_MESSAGES          True or False    false      false       Print http request/response to stdout
 KAFKA_LOG_LEVEL              String           info       false       Min LogLevel debug,info,warn,error
 
-In addition,the following CLI arguments
+```
+```
+In addition, the following CLI arguments are supported
   -ce
-    	Use cloudevents format (default: STRING or JSON)
+    	CloudEvents format for event payload (default: STRING or JSON)
   -header value
     	Header formatted as key=value, can be used multiple times
   -help
-    	Display help
+    	Display this help
   -key string
-    	Key for the message (optional, default is generated uuid)
+    	Kafka Message Key (optional, default is generated uuid)
   -record string
-    	Record to send to the topic
+    	Request payload to send into the Kafka Topic
   -source string
-    	Identifies the context in which an event happened (CE) (default "rubin/cli")
+    	CloudEventy: The context in which an event happened (default "rubin/cli")
   -subject string
-    	Describes the subject of the event in the context of the event producer
+    	CloudEventy: The subject of the event in the context of the event producer
   -topic string
-    	Kafka topic name to push records
+    	Name of target Kafka Topic
   -type string
-    	Describes the type of event related to the originating occurrence (default "com.github.cloudevents.Event")
+    	CloudEvents: Type of event related to the originating occurrence (default "event.Event")
   -v string
-    	Verbosity (default "info")
+    	Verbosity, one of 'debug', 'info', 'warn', 'error' (default "info")
 ```
 
-### Use as library in external application
+### Use as library in an external Go app
 
 ```
 go get github.com/tillkuhn/rubin
@@ -122,12 +124,18 @@ docker run --rm ghcr.io/tillkuhn/rubin:v0.1.2 -help
 
 In Addition to simple string records and json payloads, *rubin* also supports [CloudEvents](https://cloudevents.io/), a "a specification for describing event data in common formats to provide interoperability across services, platforms and systems", hosted by the [Cloud Native Computing Foundation](https://www.cncf.io/). See the `-ce` switch and the [JSON Spec for CloudEvents](https://github.com/cloudevents/spec/blob/main/cloudevents/formats/json-format.md) for more details.
 
+CloudEvents with CLI
 ```
 $ rubin -topic public.hello -record '{"action":"push"}' \
     -ce -type "events.published" -source "/ci/build/123" -subject "artifact.zip"
 ```
-
-
+CloudEvents with library
+```
+payload := map[string]string{"user": "james.bond", "id": "007"}
+event, err = NewCloudEvent("//hr/manager", "user.created", payload)
+resp, err := cc.Produce(ctx, Request{ "app.user",  event})
+```
+Resulting event structure (CLI example code)
 ```
 {
   "specversion": "1.0",

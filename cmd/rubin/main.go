@@ -101,10 +101,11 @@ func run() error {
 	// fmt.Printf("%v map %v", headers, headerMap)
 	var payloadData interface{}
 	if *ce {
-		event, err := rubin.NewCloudEvent(*source, *eType, *subject, *record)
+		event, err := rubin.NewCloudEvent(*source, *eType, *record)
 		if err != nil {
 			return err
 		}
+		event.SetSubject(*subject)
 		payloadData = event
 	} else {
 		payloadData = *record
@@ -135,7 +136,7 @@ func showHelp() {
 	_ = envconfig.Usagef(envconfigPrefix, &rubin.Options{}, tabs, envconfig.DefaultTableFormat)
 	_ = tabs.Flush()
 	// use below approach instead of flag.Usage() for customized output: https://stackoverflow.com/a/23726033/4292075
-	fmt.Println("\nIn addition,the following CLI arguments")
+	fmt.Println("\nIn addition, the following CLI arguments are supported")
 	flag.PrintDefaults()
 	fmt.Println()
 }

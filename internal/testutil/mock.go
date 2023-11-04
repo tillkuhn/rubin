@@ -8,19 +8,27 @@ import (
 )
 
 const (
-	sampleDir = "../../testdata"
-	ClusterID = "abc-r2d2"
-	Topic     = "public.hello"
+	sampleDir   = "../../testdata"
+	ClusterID   = "abc-r2d2"
+	topicPrefix = "public.hello"
 )
 
-func ServerMock(responseCode int) *httptest.Server {
+func ServerMock() *httptest.Server {
 	handler := http.NewServeMux()
-	handler.HandleFunc(
-		fmt.Sprintf("/kafka/v3/clusters/%s/topics/%s/records", ClusterID, Topic),
-		mockHandler(fmt.Sprintf("%s/response-%d.json", sampleDir, responseCode)),
-	)
+	// http.StatusUnauthorized /* 401 */ is html !!!
+	for _, code := range []int{http.StatusOK, http.StatusBadRequest /*400*/, http.StatusForbidden /*403*/} {
+		handler.HandleFunc(
+			fmt.Sprintf("/kafka/v3/clusters/%s/topics/%s/records", ClusterID, Topic(code)),
+			mockHandler(fmt.Sprintf("%s/response-%d.json", sampleDir, code)),
+		)
+	}
 	srv := httptest.NewServer(handler)
 	return srv
+}
+
+// Topic expects a response file testdata/response-<statuscode>
+func Topic(statusCode int) string {
+	return fmt.Sprintf("%s-%d", topicPrefix, statusCode)
 }
 
 func mockHandler(responseFile string) func(w http.ResponseWriter, _ *http.Request) {

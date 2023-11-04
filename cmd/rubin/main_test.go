@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"net/http"
 	"os"
 	"testing"
 
@@ -12,8 +11,8 @@ import (
 
 func TestRunMainMessageProducer(t *testing.T) {
 	os.Clearenv()
-	os.Args = []string{"noop", "-topic", testutil.Topic, "-record", "Horst Tester", "-header", "id=1", "-source", "open/source"}
-	mock := testutil.ServerMock(http.StatusOK)
+	os.Args = []string{"noop", "-topic", testutil.Topic(200), "-record", "Horst Tester", "-header", "id=1", "-source", "open/source"}
+	mock := testutil.ServerMock()
 	_ = os.Setenv("KAFKA_REST_ENDPOINT", mock.URL)
 	_ = os.Setenv("KAFKA_CLUSTER_ID", testutil.ClusterID)
 	_ = os.Setenv("KAFKA_PRODUCER_API_KEY", "hase")

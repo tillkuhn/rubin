@@ -1,7 +1,6 @@
 package rubin
 
 import (
-	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -12,8 +11,8 @@ import (
 
 func TestRunEnv(t *testing.T) {
 	os.Clearenv()
-	os.Args = []string{"noop", "-topic", testutil.Topic, "-record", "Horst Tester"}
-	mock := testutil.ServerMock(http.StatusOK)
+	os.Args = []string{"noop", "-topic", testutil.Topic(200), "-record", "Horst Tester"}
+	mock := testutil.ServerMock()
 	prefix := strings.ToUpper(envconfigDefaultPrefix)
 	_ = os.Setenv(prefix+"_REST_ENDPOINT", mock.URL)
 	_ = os.Setenv(prefix+"_CLUSTER_ID", testutil.ClusterID)
