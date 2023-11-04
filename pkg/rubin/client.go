@@ -72,29 +72,30 @@ func (c *Client) String() string {
 	return fmt.Sprintf("rubin-http-client@%s/%s", c.options.RestEndpoint, c.options.ClusterID)
 }
 
-func (c *Client) Produce(ctx context.Context, record Request) (Response, error) {
+// Produce produces a Kafka Record into the given Topic
+func (c *Client) Produce(ctx context.Context, request Request) (Response, error) {
 	defer func() {
 		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
 	}()
-	keyData := c.messageKeyData(record.Key)
+	keyData := c.messageKeyData(request.Key)
 	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.ProducerAPIKey, c.options.ProducerAPISecret)))
-	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, record.Topic)
+	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, request.Topic)
 
 	var kResp Response
-	valueType, valueData, err := transformPayload(record.Data)
+	valueType, valueData, err := transformPayload(request.Data)
 
 	// handle message headers, add content type for cloud events
-	if record.Headers == nil {
-		record.Headers = map[string]string{}
+	if request.Headers == nil {
+		request.Headers = map[string]string{}
 	}
 	if err != nil {
 		return kResp, fmt.Errorf("%w: unable to extract paylos (%s)", errClientResponse, err.Error())
 	}
-	_, isCE := record.Data.(event.Event)
+	_, isCE := request.Data.(event.Event)
 	if isCE {
-		record.Headers["content-type"] = "application/cloudevents+json; charset=UTF-8"
+		request.Headers["content-type"] = "application/cloudevents+json; charset=UTF-8"
 	}
-	apiHeaders := messageHeaders(record.Headers)
+	apiHeaders := messageHeaders(request.Headers)
 
 	ts := time.Now().Round(time.Second)
 	payload := kafkarestv3.ProduceRequest{
@@ -115,7 +116,7 @@ func (c *Client) Produce(ctx context.Context, record Request) (Response, error) 
 	req.Header.Set("Content-Type", "application/json") // don't add ;charset=UTF8 or server will complain
 	req.Header.Add("Authorization", "Basic "+basicAuth)
 
-	c.logger.Infow("Push record", "url", url, "type", fmt.Sprintf("%T", record.Data), "len", len(payloadJSON), "headers", len(apiHeaders))
+	c.logger.Infow("Push request", "url", url, "type", fmt.Sprintf("%T", request.Data), "len", len(payloadJSON), "headers", len(apiHeaders))
 	c.checkDumpRequest(req)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
