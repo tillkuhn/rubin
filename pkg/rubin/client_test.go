@@ -62,7 +62,7 @@ func TestProduceMessageOK(t *testing.T) {
 	assert.NoError(t, err)
 
 	// test new AsCloudEvents Flag
-	_, err = cc.Produce(ctx, RecordRequest{
+	resp, err = cc.Produce(ctx, RecordRequest{
 		Topic:        testutil.Topic(200),
 		Data:         `{"car": "opel"}`,
 		Headers:      nil,

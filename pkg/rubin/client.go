@@ -114,17 +114,19 @@ func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResp
 		}
 		request.Data = ce
 	}
-	valueType, valueData, err := transformPayload(request.Data)
 
+	valueType, valueData, err := transformPayload(request.Data)
+	if err != nil {
+		return prodResp, fmt.Errorf("%w: unable to extract paylos (%s)", errClientResponse, err.Error())
+	}
 	// handle message headers, add content type for cloud events
 	if request.Headers == nil {
 		request.Headers = map[string]string{}
 	}
-	if err != nil {
-		return prodResp, fmt.Errorf("%w: unable to extract paylos (%s)", errClientResponse, err.Error())
-	}
+
+	// todo improve CE detection, use alternative content-type headers for JSON and STRING
 	_, isCE := request.Data.(event.Event)
-	if isCE {
+	if isCE || request.AsCloudEvent {
 		request.Headers["content-type"] = "application/cloudevents+json; charset=UTF-8"
 	}
 	apiHeaders := messageHeaders(request.Headers)
@@ -148,7 +150,10 @@ func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResp
 	req.Header.Set("Content-Type", "application/json") // don't add ;charset=UTF8 or server will complain
 	req.Header.Add("Authorization", "Basic "+basicAuth)
 
-	c.logger.Infow("Push request", "url", url, "type", fmt.Sprintf("%T", request.Data), "len", len(payloadJSON), "headers", len(apiHeaders))
+	c.logger.Infow("Push request", "url", url,
+		"type", fmt.Sprintf("%T", request.Data), "ce", request.AsCloudEvent,
+		"len", len(payloadJSON), "headers", len(apiHeaders),
+	)
 	c.checkDumpRequest(req)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
