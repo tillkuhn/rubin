@@ -36,7 +36,7 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	// This should succeed
 	cc := NewClient(intOptions)
 	hm := map[string]string{"heading": "for tomorrow"}
-	rd := ProduceRequest{Topic: topicUnderTest, Data: payloadData, Key: "134", Headers: hm}
+	rd := RecordRequest{Topic: topicUnderTest, Data: payloadData, Key: "134", Headers: hm}
 	resp, err := cc.Produce(ctx, rd)
 	assert.NoError(t, err)
 	assert.Greater(t, resp.Offset, int32(0))

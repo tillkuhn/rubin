@@ -76,8 +76,8 @@ func (c *Client) String() string {
 	return fmt.Sprintf("rubin-http-client@%s", c.options.String())
 }
 
-// ProduceRequest holds the data to build the Kafka Message Payload plus optional Key and Headers
-type ProduceRequest struct {
+// RecordRequest holds the data to build the Kafka Message Payload plus optional Key and Headers
+type RecordRequest struct {
 	Topic   string
 	Data    interface{}
 	Key     string
@@ -89,14 +89,14 @@ type ProduceRequest struct {
 	Subject      string
 }
 
-// ProduceResponse Wrapper around the external ProduceResponse
-type ProduceResponse struct {
+// RecordResponse Wrapper around the external RecordResponse
+type RecordResponse struct {
 	ErrorCode int `json:"error_code"`
 	kafkarestv3.ProduceResponse
 }
 
 // Produce produces a Kafka Record into the given Topic
-func (c *Client) Produce(ctx context.Context, request ProduceRequest) (ProduceResponse, error) {
+func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResponse, error) {
 	defer func() {
 		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
 	}()
@@ -104,7 +104,7 @@ func (c *Client) Produce(ctx context.Context, request ProduceRequest) (ProduceRe
 	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.ProducerAPIKey, c.options.ProducerAPISecret)))
 	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, request.Topic)
 
-	var prodResp ProduceResponse
+	var prodResp RecordResponse
 	if request.AsCloudEvent {
 		// wrap data into a Cloud Event
 		ce, err := NewCloudEvent(request.Source, request.Type, request.Data)
@@ -160,14 +160,14 @@ func (c *Client) Produce(ctx context.Context, request ProduceRequest) (ProduceRe
 		return prodResp, err
 	}
 
-	c.logger.Infow("ProduceRequest successfully committed", "code", prodResp.ErrorCode, "key", prodResp.Key, "topic", prodResp.TopicName, "offset", prodResp.Offset, "partition", prodResp.PartitionId)
+	c.logger.Infow("RecordRequest successfully committed", "code", prodResp.ErrorCode, "key", prodResp.Key, "topic", prodResp.TopicName, "offset", prodResp.Offset, "partition", prodResp.PartitionId)
 
 	return prodResp, nil
 }
 
-func parseResponse(res *http.Response) (ProduceResponse, error) {
+func parseResponse(res *http.Response) (RecordResponse, error) {
 	defer closeSilently(res.Body)
-	var prodResp ProduceResponse
+	var prodResp RecordResponse
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return prodResp, fmt.Errorf("%w: cannot parse response body %s", errClientResponse, err.Error())
@@ -236,13 +236,13 @@ func transformPayload(data interface{}) (valueType string, valueData interface{}
 func (c *Client) checkDumpRequest(req *http.Request) {
 	if c.options.DumpMessages {
 		reDump, _ := httputil.DumpRequest(req, true)
-		fmt.Printf("Dump HTTP-ProduceRequest:\n%s", string(reDump)) // only for debug
+		fmt.Printf("Dump HTTP-RecordRequest:\n%s", string(reDump)) // only for debug
 	}
 }
 func (c *Client) checkDumpResponse(res *http.Response) {
 	if c.options.DumpMessages {
 		resDump, _ := httputil.DumpResponse(res, true)
-		fmt.Printf("\nDump HTTP-ProduceResponse:\n%s", string(resDump)) // only for debug
+		fmt.Printf("\nDump HTTP-RecordResponse:\n%s", string(resDump)) // only for debug
 	}
 }
 

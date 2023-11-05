@@ -65,7 +65,7 @@ func run() error {
 	ce := flag.Bool("ce", false, "CloudEvents format for event payload (default: STRING or JSON)")
 	help := flag.Bool("help", false, "Display this help")
 	key := flag.String("key", "", "Kafka Message Key (optional, default is generated uuid)")
-	record := flag.String("record", "", "ProduceRequest payload to send into the Kafka Topic")
+	record := flag.String("record", "", "RecordRequest payload to send into the Kafka Topic")
 	source := flag.String("source", "rubin/cli", "CloudEventy: The context in which an event happened")
 	subject := flag.String("subject", "", "CloudEventy: The subject of the event in the context of the event producer")
 	topic := flag.String("topic", "", "Name of target Kafka Topic")
@@ -107,7 +107,7 @@ func run() error {
 	}
 	client.LogLevel(*verbosity)
 
-	if _, err := client.Produce(context.Background(), rubin.ProduceRequest{
+	if _, err := client.Produce(context.Background(), rubin.RecordRequest{
 		Topic:        *topic,
 		Data:         *record,
 		Key:          *key,

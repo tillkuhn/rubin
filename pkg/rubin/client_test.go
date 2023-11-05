@@ -34,7 +34,7 @@ func TestProduceMessageOK(t *testing.T) {
 	cc := NewClient(opts)
 	assert.NotEmpty(t, cc.String())
 
-	resp, err := cc.Produce(ctx, ProduceRequest{
+	resp, err := cc.Produce(ctx, RecordRequest{
 		Topic:   testutil.Topic(200),
 		Data:    "Dragonfly out in the sun you know what I mean",
 		Key:     "134-5678",
@@ -48,28 +48,33 @@ func TestProduceMessageOK(t *testing.T) {
 	// test with default timeout and debug = true and empty key
 	opts.HTTPTimeout = 0
 	cc = NewClient(opts)
-	_, err = cc.Produce(ctx, ProduceRequest{Topic: testutil.Topic(200), Data: "Hello Hase!", Headers: hm}) // Simple String
+	_, err = cc.Produce(ctx, RecordRequest{Topic: testutil.Topic(200), Data: "Hello Hase!", Headers: hm}) // Simple String
 	assert.NoError(t, err)
 
-	json := ProduceRequest{Topic: testutil.Topic(200), Data: `{"example": 1}`, Key: "134", Headers: hm}
+	json := RecordRequest{Topic: testutil.Topic(200), Data: `{"example": 1}`, Key: "134", Headers: hm}
 	_, err = cc.Produce(ctx, json) // valid json
 	assert.NoError(t, err)
 
 	event, err := NewCloudEvent("//testing/client", "", map[string]string{"heading": "for tomorrow"})
 	assert.NoError(t, err)
 
-	_, err = cc.Produce(ctx, ProduceRequest{Topic: testutil.Topic(200), Data: event, Headers: nil}) //
+	_, err = cc.Produce(ctx, RecordRequest{Topic: testutil.Topic(200), Data: event, Headers: nil}) //
 	assert.NoError(t, err)
 
 	// test new AsCloudEvents Flag
-	_, err = cc.Produce(ctx, ProduceRequest{Topic: testutil.Topic(200),
-		Data: `{"car": "opel"}`, Headers: nil, AsCloudEvent: true,
-		Subject: "me", Source: "test/abc", Type: "test.event",
+	_, err = cc.Produce(ctx, RecordRequest{
+		Topic:        testutil.Topic(200),
+		Data:         `{"car": "opel"}`,
+		Headers:      nil,
+		AsCloudEvent: true,
+		Subject:      "me",
+		Source:       "test/abc",
+		Type:         "test.event",
 	}) //
 	assert.NoError(t, err)
 
 	// test with empty header map
-	_, err = cc.Produce(ctx, ProduceRequest{Topic: testutil.Topic(200), Data: event, Headers: hm}) // struct that can be unmarshalled
+	_, err = cc.Produce(ctx, RecordRequest{Topic: testutil.Topic(200), Data: event, Headers: hm}) // struct that can be unmarshalled
 	assert.NoError(t, err)
 
 	// test without auth (mock should return 401 is no user and pw and submitted in auth header
@@ -93,7 +98,7 @@ func TestProduceMessageError(t *testing.T) {
 	ctx := context.Background()
 	srv := testutil.ServerMock() // "https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443"
 	defer srv.Close()
-	req := ProduceRequest{
+	req := RecordRequest{
 		Topic:   testutil.Topic(http.StatusForbidden),
 		Data:    "Dragonfly out in the sun you know what I mean",
 		Key:     "134-5678",
