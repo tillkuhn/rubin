@@ -21,8 +21,9 @@ import (
 // - Actual JSON Schema: https://github.com/cloudevents/spec/blob/main/cloudevents/formats/cloudevents.json
 //
 // Real World Examples:
-// - https://cloud.google.com/eventarc/docs/workflows/cloudevents
-// - https://github.com/googleapis/google-cloudevents/tree/main/examples/structured
+// - https://cloud.google.com/eventarc/docs/workflows/cloudevents (Google APIs)
+// - https://github.com/googleapis/google-cloudevents/tree/main/examples/structured (Google APIs)
+// - https://docs.dapr.io/developing-applications/building-blocks/pubsub/pubsub-cloudevents/ (Dapr)
 
 func NewCloudEvent(sourceURI string, eventType string, data interface{}) (cloudevents.Event, error) {
 	event := cloudevents.NewEvent()
@@ -39,15 +40,16 @@ func NewCloudEvent(sourceURI string, eventType string, data interface{}) (cloude
 	// Describes the type of event related to the originating occurrence.
 	// Examples: "com.github.pull_request.opened" or "com.example.object.deleted.v2"
 	// or "google.cloud.pubsub.topic.v1.messagePublished", "google.cloud.storage.object.v1.finalized"
-	event.SetType(eventType) // "net.timafe.events.ci.published.v1"
-
-	// Optional Subjects "Describes the subject of the event in the context of the event producer (identified by source).",
-
+	// "com.dapr.event.sent", "net.timafe.event.app.started", "net.timafe.event.entity.created"
+	event.SetType(eventType) //
 	// "Timestamp of when the occurrence happened. Must adhere to RFC 3339.",
 	// make sure we round to .SSS (at least we had an issue when we did not round)
 	event.SetTime(time.Now().Round(time.Second))
 
-	// data is optional ...
+	// Optional Subjects "Describes the subject of the event in the context of the event producer (identified by source)."
+	// the receiver is expected to set Subject and other optional attributes on the returned Event struct
+
+	// Optional data with some JSON String serialization magic
 	if data != nil {
 		vType, payload, err := transformPayload(data)
 
