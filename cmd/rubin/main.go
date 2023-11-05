@@ -65,7 +65,7 @@ func run() error {
 	ce := flag.Bool("ce", false, "CloudEvents format for event payload (default: STRING or JSON)")
 	help := flag.Bool("help", false, "Display this help")
 	key := flag.String("key", "", "Kafka Message Key (optional, default is generated uuid)")
-	record := flag.String("record", "", "Request payload to send into the Kafka Topic")
+	record := flag.String("record", "", "ProduceRequest payload to send into the Kafka Topic")
 	source := flag.String("source", "rubin/cli", "CloudEventy: The context in which an event happened")
 	subject := flag.String("subject", "", "CloudEventy: The subject of the event in the context of the event producer")
 	topic := flag.String("topic", "", "Name of target Kafka Topic")
@@ -99,31 +99,23 @@ func run() error {
 		headerMap[parts[0]] = parts[1]
 	}
 	// fmt.Printf("%v map %v", headers, headerMap)
-	var payloadData interface{}
-	if *ce {
-		event, err := rubin.NewCloudEvent(*source, *eType, *record)
-		if err != nil {
-			return err
-		}
-		event.SetSubject(*subject)
-		payloadData = event
-	} else {
-		payloadData = *record
-	}
 
-	options, err := rubin.NewOptionsFromEnvconfig()
+	// overwrite selected options based on CLI args
+	client, err := rubin.NewClientFromEnv()
 	if err != nil {
 		return err
 	}
+	client.LogLevel(*verbosity)
 
-	// overwrite selected options based on CLI args
-	options.LogLevel = *verbosity
-	client := rubin.NewClient(options)
-	if _, err := client.Produce(context.Background(), rubin.Request{
-		Topic:   *topic,
-		Data:    payloadData,
-		Key:     *key,
-		Headers: headerMap,
+	if _, err := client.Produce(context.Background(), rubin.ProduceRequest{
+		Topic:        *topic,
+		Data:         *record,
+		Key:          *key,
+		Headers:      headerMap,
+		AsCloudEvent: *ce,
+		Source:       *source,
+		Type:         *eType,
+		Subject:      *subject,
 	}); err != nil {
 		return err
 	}

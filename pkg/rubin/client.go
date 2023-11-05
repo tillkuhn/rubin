@@ -54,26 +54,49 @@ func NewClient(options *Options) *Client {
 	}
 }
 
-// Request holds the data to build the Kafka Message Payload plus optional Key and Headers
-type Request struct {
+// NewClientFromEnv Convenience function using default envconfig prefix for
+//
+//	opts, err := NewOptionsFromEnv()
+//	client := NewClient(opts)
+func NewClientFromEnv() (*Client, error) {
+	opts, err := NewOptionsFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	return NewClient(opts), err
+}
+
+// LogLevel allows dynamic configuration of LogLevel after the client has been initialized
+func (c *Client) LogLevel(levelStr string) {
+	c.logger = *log.NewAtLevel(levelStr)
+}
+
+// String representation of client
+func (c *Client) String() string {
+	return fmt.Sprintf("rubin-http-client@%s", c.options.String())
+}
+
+// ProduceRequest holds the data to build the Kafka Message Payload plus optional Key and Headers
+type ProduceRequest struct {
 	Topic   string
 	Data    interface{}
 	Key     string
 	Headers map[string]string
+	// AsCloudEvent section for CloudEvents specific attributes
+	AsCloudEvent bool
+	Source       string
+	Type         string
+	Subject      string
 }
 
-// Response Wrapper around the external ProduceResponse
-type Response struct {
+// ProduceResponse Wrapper around the external ProduceResponse
+type ProduceResponse struct {
 	ErrorCode int `json:"error_code"`
 	kafkarestv3.ProduceResponse
 }
 
-func (c *Client) String() string {
-	return fmt.Sprintf("rubin-http-client@%s/%s", c.options.RestEndpoint, c.options.ClusterID)
-}
-
 // Produce produces a Kafka Record into the given Topic
-func (c *Client) Produce(ctx context.Context, request Request) (Response, error) {
+func (c *Client) Produce(ctx context.Context, request ProduceRequest) (ProduceResponse, error) {
 	defer func() {
 		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
 	}()
@@ -81,7 +104,16 @@ func (c *Client) Produce(ctx context.Context, request Request) (Response, error)
 	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.ProducerAPIKey, c.options.ProducerAPISecret)))
 	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, request.Topic)
 
-	var kResp Response
+	var prodResp ProduceResponse
+	if request.AsCloudEvent {
+		// wrap data into a Cloud Event
+		ce, err := NewCloudEvent(request.Source, request.Type, request.Data)
+		ce.SetSubject(request.Subject)
+		if err != nil {
+			return prodResp, err
+		}
+		request.Data = ce
+	}
 	valueType, valueData, err := transformPayload(request.Data)
 
 	// handle message headers, add content type for cloud events
@@ -89,7 +121,7 @@ func (c *Client) Produce(ctx context.Context, request Request) (Response, error)
 		request.Headers = map[string]string{}
 	}
 	if err != nil {
-		return kResp, fmt.Errorf("%w: unable to extract paylos (%s)", errClientResponse, err.Error())
+		return prodResp, fmt.Errorf("%w: unable to extract paylos (%s)", errClientResponse, err.Error())
 	}
 	_, isCE := request.Data.(event.Event)
 	if isCE {
@@ -120,30 +152,39 @@ func (c *Client) Produce(ctx context.Context, request Request) (Response, error)
 	c.checkDumpRequest(req)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		return kResp, fmt.Errorf("%w: cannot send http request %s", errClientResponse, err.Error())
+		return prodResp, fmt.Errorf("%w: cannot send http request %s", errClientResponse, err.Error())
 	}
 	c.checkDumpResponse(res)
+	prodResp, err = parseResponse(res)
+	if err != nil {
+		return prodResp, err
+	}
 
+	c.logger.Infow("ProduceRequest successfully committed", "code", prodResp.ErrorCode, "key", prodResp.Key, "topic", prodResp.TopicName, "offset", prodResp.Offset, "partition", prodResp.PartitionId)
+
+	return prodResp, nil
+}
+
+func parseResponse(res *http.Response) (ProduceResponse, error) {
 	defer closeSilently(res.Body)
+	var prodResp ProduceResponse
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return kResp, fmt.Errorf("%w: cannot parse response body %s", errClientResponse, err.Error())
+		return prodResp, fmt.Errorf("%w: cannot parse response body %s", errClientResponse, err.Error())
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return kResp, fmt.Errorf("%w: unexpected http status code %d for %s", errClientResponse, res.StatusCode, url)
+		return prodResp, fmt.Errorf("%w: unexpected http status code %d", errClientResponse, res.StatusCode)
 	}
 
-	if err := json.Unmarshal(body, &kResp); err != nil {
-		return kResp, errors.Wrap(err, fmt.Sprintf("unexpected topic api response: %s", string(body)))
+	if err := json.Unmarshal(body, &prodResp); err != nil {
+		return prodResp, errors.Wrap(err, fmt.Sprintf("unexpected topic api response: %s", string(body)))
 	}
-	if kResp.ErrorCode != http.StatusOK {
+	if prodResp.ErrorCode != http.StatusOK {
 		// error_code must be 200, other values indicate an error but could be also 5 digit (e.g. 40301)
-		return kResp, fmt.Errorf("%w: unexpected error_code %d in response %s", errClientResponse, kResp.ErrorCode, string(body))
+		return prodResp, fmt.Errorf("%w: unexpected error_code %d in response %s", errClientResponse, prodResp.ErrorCode, string(body))
 	}
-	c.logger.Infow("Request successfully committed", "code", kResp.ErrorCode, "key", kResp.Key, "topic", kResp.TopicName, "offset", kResp.Offset, "partition", kResp.PartitionId)
-
-	return kResp, nil
+	return prodResp, nil
 }
 
 func (c *Client) messageKeyData(key string) interface{} {
@@ -195,13 +236,13 @@ func transformPayload(data interface{}) (valueType string, valueData interface{}
 func (c *Client) checkDumpRequest(req *http.Request) {
 	if c.options.DumpMessages {
 		reDump, _ := httputil.DumpRequest(req, true)
-		fmt.Printf("Dump HTTP-Request:\n%s", string(reDump)) // only for debug
+		fmt.Printf("Dump HTTP-ProduceRequest:\n%s", string(reDump)) // only for debug
 	}
 }
 func (c *Client) checkDumpResponse(res *http.Response) {
 	if c.options.DumpMessages {
 		resDump, _ := httputil.DumpResponse(res, true)
-		fmt.Printf("Dump HTTP-Response:\n%s", string(resDump)) // only for debug
+		fmt.Printf("\nDump HTTP-ProduceResponse:\n%s", string(resDump)) // only for debug
 	}
 }
 
@@ -210,4 +251,16 @@ func closeSilently(cl io.Closer) {
 	if err := cl.Close(); err != nil {
 		log.NewAtLevel("warn").Warn(err.Error())
 	}
+}
+
+// Must helper, see https://stackoverflow.com/a/73584801/4292075
+// a generic version of https://go.dev/src/text/template/helper.go?s=576:619
+// panics if the error is non-nil and intended for use in variable initializations
+//
+//	opts := Must[*Options](NewOptionsFromEnv())
+func Must[T any](obj T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return obj
 }

@@ -36,7 +36,7 @@ func TestProduceMessageRealConfluentAPI(t *testing.T) {
 	// This should succeed
 	cc := NewClient(intOptions)
 	hm := map[string]string{"heading": "for tomorrow"}
-	rd := Request{topicUnderTest, payloadData, "134", hm}
+	rd := ProduceRequest{Topic: topicUnderTest, Data: payloadData, Key: "134", Headers: hm}
 	resp, err := cc.Produce(ctx, rd)
 	assert.NoError(t, err)
 	assert.Greater(t, resp.Offset, int32(0))
@@ -90,6 +90,6 @@ func initOptions() (*Options, error) {
 		return nil, err
 	}
 	var intOptions Options
-	err = yaml.Unmarshal([]byte(yamlConfig), &intOptions)
+	err = yaml.Unmarshal(yamlConfig, &intOptions)
 	return &intOptions, err
 }

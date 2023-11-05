@@ -3,6 +3,8 @@ package rubin
 import (
 	"context"
 	"net/http"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -32,7 +34,7 @@ func TestProduceMessageOK(t *testing.T) {
 	cc := NewClient(opts)
 	assert.NotEmpty(t, cc.String())
 
-	resp, err := cc.Produce(ctx, Request{
+	resp, err := cc.Produce(ctx, ProduceRequest{
 		Topic:   testutil.Topic(200),
 		Data:    "Dragonfly out in the sun you know what I mean",
 		Key:     "134-5678",
@@ -46,21 +48,28 @@ func TestProduceMessageOK(t *testing.T) {
 	// test with default timeout and debug = true and empty key
 	opts.HTTPTimeout = 0
 	cc = NewClient(opts)
-	_, err = cc.Produce(ctx, Request{testutil.Topic(200), "Hello Hase!", "", hm}) // Simple String
+	_, err = cc.Produce(ctx, ProduceRequest{Topic: testutil.Topic(200), Data: "Hello Hase!", Headers: hm}) // Simple String
 	assert.NoError(t, err)
 
-	json := Request{testutil.Topic(200), `{"example": 1}`, "134", hm}
+	json := ProduceRequest{Topic: testutil.Topic(200), Data: `{"example": 1}`, Key: "134", Headers: hm}
 	_, err = cc.Produce(ctx, json) // valid json
 	assert.NoError(t, err)
 
 	event, err := NewCloudEvent("//testing/client", "", map[string]string{"heading": "for tomorrow"})
 	assert.NoError(t, err)
 
-	_, err = cc.Produce(ctx, Request{testutil.Topic(200), event, "134", nil}) //
+	_, err = cc.Produce(ctx, ProduceRequest{Topic: testutil.Topic(200), Data: event, Headers: nil}) //
+	assert.NoError(t, err)
+
+	// test new AsCloudEvents Flag
+	_, err = cc.Produce(ctx, ProduceRequest{Topic: testutil.Topic(200),
+		Data: `{"car": "opel"}`, Headers: nil, AsCloudEvent: true,
+		Subject: "me", Source: "test/abc", Type: "test.event",
+	}) //
 	assert.NoError(t, err)
 
 	// test with empty header map
-	_, err = cc.Produce(ctx, Request{testutil.Topic(200), event, "134", hm}) // struct that can be unmarshalled
+	_, err = cc.Produce(ctx, ProduceRequest{Topic: testutil.Topic(200), Data: event, Headers: hm}) // struct that can be unmarshalled
 	assert.NoError(t, err)
 
 	// test without auth (mock should return 401 is no user and pw and submitted in auth header
@@ -72,12 +81,19 @@ func TestProduceMessageOK(t *testing.T) {
 	assert.ErrorContains(t, err, "unexpected http")
 }
 
+func TestClientFromEnv(t *testing.T) {
+	_ = os.Setenv(strings.ToUpper(envconfigDefaultPrefix)+"_CLUSTER_ID", "/horst")
+	c, err := NewClientFromEnv()
+	assert.NoError(t, err)
+	assert.Equal(t, "/horst", c.options.ClusterID)
+}
+
 func TestProduceMessageError(t *testing.T) {
 	// hm := map[string]string{"heading": "for tomorrow"}
 	ctx := context.Background()
 	srv := testutil.ServerMock() // "https://pkc-zpjg0.eu-central-1.aws.confluent.cloud:443"
 	defer srv.Close()
-	req := Request{
+	req := ProduceRequest{
 		Topic:   testutil.Topic(http.StatusForbidden),
 		Data:    "Dragonfly out in the sun you know what I mean",
 		Key:     "134-5678",
