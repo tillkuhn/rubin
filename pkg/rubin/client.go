@@ -11,6 +11,8 @@ import (
 	"net/http/httputil"
 	"time"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+
 	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
@@ -126,8 +128,8 @@ func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResp
 
 	// todo improve CE detection, use alternative content-type headers for JSON and STRING
 	_, isCE := request.Data.(event.Event)
-	if isCE || request.AsCloudEvent {
-		request.Headers["content-type"] = "application/cloudevents+json; charset=UTF-8"
+	if isCE {
+		request.Headers["content-type"] = cloudevents.ApplicationCloudEventsJSON + "; charset=UTF-8"
 	}
 	apiHeaders := messageHeaders(request.Headers)
 

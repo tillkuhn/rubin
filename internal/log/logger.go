@@ -18,7 +18,7 @@ func NewAtLevel(levelStr string) *zap.SugaredLogger {
 		var err error
 		logLevel, err = zapcore.ParseLevel(levelStr)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "fallback to info levem, cannot parse loglevel %s: %v\n", levelStr, err)
+			_, _ = fmt.Fprintf(os.Stderr, "cannot parse loglevel '%s', callback to level 'info': %v\n", levelStr, err)
 		}
 	}
 

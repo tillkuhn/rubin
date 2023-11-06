@@ -45,6 +45,7 @@ GO_BUILD = mkdir -pv "$(@)" && go build -ldflags="-w -s -X 'main.version=$(shell
 .PHONY: out/bin
 out/bin:
 	$(GO_BUILD)
+	ls -l out/bin
 
 GOLANGCI_LINT = bin/golangci-lint-$(GOLANGCI_VERSION)
 $(GOLANGCI_LINT):
