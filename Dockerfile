@@ -5,7 +5,8 @@ FROM golang:1.19@sha256:7ffa70183b7596e6bc1b78c132dbba9a6e05a26cd30eaa9832fecad6
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 ENV GOOS=linux
-ENV GOARCH=amd64
+# disable, let docker buildx action handle the platform
+# ENV GOARCH=amd64
 WORKDIR /src
 # avoid go.* (sonar security issue)
 COPY go.mod .
@@ -40,7 +41,7 @@ RUN --mount=target=. \
 
 # Import the binary from build stage
 FROM gcr.io/distroless/static:nonroot@sha256:ed05c7a5d67d6beebeba19c6b9082a5513d5f9c3e22a883b9dc73ec39ba41c04 AS prd
-COPY --from=build /app/main /
+COPY --from=build /app/main /rubin
 # this is the numeric version of user nonroot:nonroot to check runAsNonRoot in kubernetes
 USER 65532:65532
-ENTRYPOINT ["/main"]
+ENTRYPOINT ["/rubin"]
