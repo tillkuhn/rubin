@@ -49,8 +49,8 @@ func (af *arrayFlags) Set(value string) error {
 }
 
 func main() {
+	nopLog := func(string, ...interface{}) { /* keep automaxprocs silent*/ }
 	// Disable automaxprocs log see https://github.com/uber-go/automaxprocs/issues/18
-	nopLog := func(string, ...interface{}) {}
 	_, _ = maxprocs.Set(maxprocs.Logger(nopLog))
 
 	fmt.Printf("Welcome to %s %s built %s by %s (%s)\n\n", appName, version, date, builtBy, commit)
