@@ -76,7 +76,7 @@ func run() error {
 
 	// nice: we can also use flags for maps https://www.emmanuelgautier.com/blog/string-map-command-argument-go
 	flag.Parse()
-	if *help {
+	if *help || len(os.Args) < 2 {
 		showHelp()
 		return nil
 	}
