@@ -35,7 +35,7 @@ RUN --mount=target=. \
       -X 'main.version=${APP_VERSION}' \
       -X 'main.commit=${APP_COMMIT}' \
       -X 'main.date=${APP_DATE}' \
-      -X 'main.buildBy=${APP_BUILT_BY}' \
+      -X 'main.builtBy=${APP_BUILT_BY}' \
       -extldflags '-static'" \
     -o /app/main ./cmd/rubin/*.go
 
