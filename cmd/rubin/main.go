@@ -1,3 +1,4 @@
+// The main package for the rubin executable.
 package main
 
 import (

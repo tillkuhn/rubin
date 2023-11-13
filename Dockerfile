@@ -37,11 +37,12 @@ RUN --mount=target=. \
       -X 'main.date=${APP_DATE}' \
       -X 'main.builtBy=${APP_BUILT_BY}' \
       -extldflags '-static'" \
-    -o /app/main ./cmd/rubin/*.go
+    -o /app/ ./...
 
 # Import the binary from build stage
 FROM gcr.io/distroless/static:nonroot@sha256:ed05c7a5d67d6beebeba19c6b9082a5513d5f9c3e22a883b9dc73ec39ba41c04 AS prd
-COPY --from=build /app/main /rubin
+COPY --from=build /app/rubin /rubin
+COPY --from=build /app/polly /polly
 # this is the numeric version of user nonroot:nonroot to check runAsNonRoot in kubernetes
 USER 65532:65532
 ENTRYPOINT ["/rubin"]

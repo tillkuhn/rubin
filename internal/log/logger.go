@@ -10,7 +10,7 @@ import (
 )
 
 // NewAtLevel returns a sugared zap Logger configured for the default level
-// if the string cannot be parsed, default level INFO is used
+// if the string is empty or cannot be parsed, default level INFO is used
 // allowed levels: "DEBUG","INFO","WARN","ERROR,"PANIC","DPANIC","FATAL"
 func NewAtLevel(levelStr string) *zap.SugaredLogger {
 	logLevel := zapcore.InfoLevel

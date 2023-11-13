@@ -39,8 +39,10 @@ fmt: ## Formats all code with go fmt
 test-build: ## Tests whether the code compiles
 	@go build -o /dev/null ./...
 
-build: out/bin ## Builds all binaries
+build: out/bin ## Builds all binaries to out/bin
 
+# $@ is the name of the target being generated, and $< the first prerequisite (usually src file).
+# in this case, target would be out/bin. See https://stackoverflow.com/a/3220288/4292075
 GO_BUILD = mkdir -pv "$(@)" && go build -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)' -X 'main.date=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")'" -o "$(@)" ./...
 .PHONY: out/bin
 out/bin:
@@ -118,6 +120,10 @@ run: fmt ## Run the app with JSON String Message
 	KAFKA_DUMP_MESSAGES=true go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
 	./cmd/rubin/main.go -v debug -topic $(TOPIC) -record '{"message":"Hello Franz!"}' \
 	-source "rubin/makefile" -subject "my.subject" -header="day=$(shell date +%A)" -header "header2=yeah" -ce
+
+run-polly: fmt ## Run the experimental polly client
+	KAFKA_DUMP_MESSAGES=true go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
+	./cmd/polly/main.go
 
 run-help: fmt ## Run the app and display app helm
 	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" ./cmd/rubin/main.go -help
