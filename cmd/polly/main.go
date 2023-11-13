@@ -7,7 +7,10 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/joho/godotenv"
 
@@ -42,14 +45,16 @@ func run() error {
 		log.Printf("Loading environment from custom location %s", *envFile)
 		err := godotenv.Load(*envFile)
 		if err != nil {
-			log.Fatalf("Error Loading environment vars from %s: %v", *envFile, err)
+			return errors.Wrap(err, "Error Loading environment vars from "+*envFile)
 		}
 	}
 	p, err := polly.NewClientFromEnv()
 	if err != nil {
 		return err
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt) // https://henvic.dev/posts/signal-notify-context/
+
+	// Nice: we no longer have to manage signal chanel manually https://henvic.dev/posts/signal-notify-context/
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 	errChan := make(chan error, 1)
 	go func() {
@@ -63,7 +68,7 @@ func run() error {
 		fmt.Printf("CLI: Timeout after %v\n", timeoutAfter)
 	case <-ctx.Done():
 		stop() // should be called asap according to docs
-		fmt.Println("CLI: Received interrupt signal, shutdown polly consumer")
+		fmt.Printf("CLI: Context Notified on '%v', waiting for polly subsytem shutdown\n", ctx.Err())
 		p.CloseWait() // make sure wait-group is zero
 	}
 	return nil
