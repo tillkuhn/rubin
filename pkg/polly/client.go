@@ -18,10 +18,10 @@ import (
 )
 
 const (
-	defaultDialTimeout = 5 * time.Second
-	defaultWaitTimeout = 5 * time.Second
-	minConsumeBytes    = 10
-	maxConsumeBytes    = 10e6 // 10 MB
+	defaultDialTimeout      = 5 * time.Second
+	defaultCloseWaitTimeout = 10 * time.Second
+	minConsumeBytes         = 10
+	maxConsumeBytes         = 10e6 // 10 MB
 	// retentionTime optionally sets the length of time the consumer group will be saved by the broker, Default 24h
 	retentionTime = 10 * time.Minute
 )
@@ -65,7 +65,7 @@ func NewClient(options *Options) *Client {
 		// errChan:      make(chan error, 10),
 	}
 	c.readerFactory = defaultMessageReader
-	logger.Debugf("New Client initialized broker=%s consumerGroupId=%s", c.options.Servers, c.options.ConsumerGroupID)
+	logger.Debugf("New Client initialized %s@%s consumerGroupId=%s", c.options.ConsumerAPIKey, c.options.BootstrapEndpoint, c.options.ConsumerGroupID)
 	return c
 }
 
@@ -90,9 +90,9 @@ func (c *Client) CloseWait() {
 	}()
 	select {
 	case <-cTimeout:
-		c.logger.Debugf("All Listeners went down within %v timeout", defaultWaitTimeout)
-	case <-time.After(defaultWaitTimeout):
-		c.logger.Debugf("Timeout %v reached, stop waiting for listener shutdown", defaultWaitTimeout)
+		c.logger.Debugf("All Listeners went down within %v timeout", defaultCloseWaitTimeout)
+	case <-time.After(defaultCloseWaitTimeout):
+		c.logger.Debugf("Timeout %v reached, stop waiting for listener shutdown", defaultCloseWaitTimeout)
 	}
 }
 
@@ -102,7 +102,7 @@ func (c *Client) CloseWait() {
 // and this nice tutorial https://www.sohamkamani.com/golang/working-with-kafka/
 // doneChan chan<- struct{}
 func (c *Client) Consume(ctx context.Context, req ConsumeRequest) error {
-	c.logger.Infof("Let's consume some yummy Kafka Messages on topic=%s", req.Topic)
+	c.logger.Infof("Let's consume some yummy Kafka Messages on topic=%s groupID=%s", req.Topic, c.options.ConsumerGroupID)
 	dialer := &kafka.Dialer{
 		SASLMechanism: plain.Mechanism{
 			Username: c.options.ConsumerAPIKey,
@@ -113,9 +113,10 @@ func (c *Client) Consume(ctx context.Context, req ConsumeRequest) error {
 	}
 
 	r := c.readerFactory(kafka.ReaderConfig{
-		Brokers: []string{c.options.Servers},
+		Brokers: []string{c.options.BootstrapEndpoint},
 		GroupID: c.options.ConsumerGroupID,
-		Topic:   req.Topic,
+		// Topic:   req.Topic,
+		GroupTopics: []string{req.Topic}, // Can listen to multiple topics
 		// kafka polls the cluster to check if there is any new data on the topic for the my-group kafka ID,
 		// the cluster will only respond if there are at least 10 new bytes of information to send.
 		MinBytes: minConsumeBytes,
@@ -126,6 +127,7 @@ func (c *Client) Consume(ctx context.Context, req ConsumeRequest) error {
 		StartOffset:    c.options.StartOffset(), // see godoc for details
 		CommitInterval: 1 * time.Second,         // flushes commits to Kafka every  x seconds
 		Logger:         LoggerWrapper{delegate: c.logger},
+		ErrorLogger:    ErrorLoggerWrapper{delegate: c.logger},
 	})
 	defer func() {
 		c.logger.Debugf("Post-consume: closing reader stream for topic %s", req.Topic)
@@ -133,6 +135,7 @@ func (c *Client) Consume(ctx context.Context, req ConsumeRequest) error {
 			c.logger.Warnf("Error closing reader stream: %v", err)
 		}
 		c.wg.Done() // decrement, CloseWait() will wait for this group and there may be multiple consumers
+		c.logger.Debugf("Post-consume: %s ready for shutdown", req.Topic)
 	}()
 	c.wg.Add(1) // add to wait group to ensure graceful shutdown
 
@@ -159,5 +162,5 @@ func (c *Client) Consume(ctx context.Context, req ConsumeRequest) error {
 // DumpMessage simple handler function that can be used as HandleMessageFunc and simply dumps information
 // about the received Kafka Message and the payload container therein
 func DumpMessage(_ context.Context, message kafka.Message) {
-	fmt.Printf(" kafka.Message: %v\n", message)
+	fmt.Printf(" kafka.Message: %s %d/%d %s\n", message.Topic, message.Partition, message.Offset, string(message.Value))
 }

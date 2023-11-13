@@ -10,6 +10,8 @@ DOCKER_TAG = latest
 # TOPIC="something.else" make run
 TOPIC ?= "public.hello"
 
+RUBIN_ENV_FILE ?= "~/.env"
+
 # customization
 .DEFAULT_GOAL = help
 export KAFKA_REST_ENDPOINT ?= $(shell test -f pkg/rubin/.test-int-options.yaml && grep rest_endpoint pkg/rubin/.test-int-options.yaml|cut -d: -f2-|xargs || echo "https://localhost:443")
@@ -122,8 +124,8 @@ run: fmt ## Run the app with JSON String Message
 	-source "rubin/makefile" -subject "my.subject" -header="day=$(shell date +%A)" -header "header2=yeah" -ce
 
 run-polly: fmt ## Run the experimental polly client
-	KAFKA_DUMP_MESSAGES=true go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
-	./cmd/polly/main.go
+	KAFKA_CONSUMER_MAX_RECEIVE=10 go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
+	./cmd/polly/main.go -env-file $(RUBIN_ENV_FILE) -topic "app.events"
 
 run-help: fmt ## Run the app and display app helm
 	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" ./cmd/rubin/main.go -help

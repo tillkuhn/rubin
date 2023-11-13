@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/joho/godotenv"
 
 	"github.com/tillkuhn/rubin/pkg/polly"
 )
@@ -19,7 +23,7 @@ var (
 	date         = "now"
 	commit       = ""
 	builtBy      = "go"
-	timeoutAfter = 9 * time.Second
+	timeoutAfter = 120 * time.Second
 )
 
 func main() {
@@ -31,6 +35,16 @@ func main() {
 }
 
 func run() error {
+	var topic = flag.String("topic", "", "Kafka topic for message consumption ")
+	var envFile = flag.String("env-file", "", "location of environment variable file e.g. /tmp/.env")
+	flag.Parse() // call after all flags are defined and before flags are accessed by the program
+	if *envFile != "" {
+		log.Printf("Loading environment from custom location %s", *envFile)
+		err := godotenv.Load(*envFile)
+		if err != nil {
+			log.Fatalf("Error Loading environment vars from %s: %v", *envFile, err)
+		}
+	}
 	p, err := polly.NewClientFromEnv()
 	if err != nil {
 		return err
@@ -39,17 +53,17 @@ func run() error {
 	defer stop()
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- p.Consume(ctx, polly.ConsumeRequest{Topic: "ci.event", Handler: polly.DumpMessage})
+		errChan <- p.Consume(ctx, polly.ConsumeRequest{Topic: *topic, Handler: polly.DumpMessage})
 	}()
 
 	select {
 	case err := <-errChan:
-		fmt.Printf("Got error from Kafka Consumer: %v\n", err)
+		fmt.Printf("CLI: Got error from Kafka Consumer: %v\n", err)
 	case <-time.After(timeoutAfter):
-		fmt.Printf("CLI timeout after %v\n", timeoutAfter)
+		fmt.Printf("CLI: Timeout after %v\n", timeoutAfter)
 	case <-ctx.Done():
 		stop() // should be called asap according to docs
-		fmt.Println("Received interrupt signal, shutdown polly consumer")
+		fmt.Println("CLI: Received interrupt signal, shutdown polly consumer")
 		p.CloseWait() // make sure wait-group is zero
 	}
 	return nil

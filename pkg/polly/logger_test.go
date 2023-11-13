@@ -12,4 +12,8 @@ func TestLogger(_ *testing.T) {
 		delegate: zLogger,
 	}
 	lw.Printf("Hello %s", "world")
+	le := ErrorLoggerWrapper{
+		delegate: zLogger,
+	}
+	le.Printf("Hello %s", "error")
 }
