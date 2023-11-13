@@ -26,7 +26,7 @@ var (
 	date         = "now"
 	commit       = ""
 	builtBy      = "go"
-	timeoutAfter = 120 * time.Second
+	timeoutAfter = 15 * time.Second
 )
 
 func main() {

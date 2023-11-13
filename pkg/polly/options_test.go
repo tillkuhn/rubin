@@ -19,7 +19,7 @@ func TestOptions(t *testing.T) {
 		ConsumerMaxReceive: 0,
 		ConsumerStartLast:  false,
 		Debug:              false,
-		BootstrapEndpoint:  "",
+		BootstrapServers:   "",
 	}
 	assert.Equal(t, kafka.FirstOffset, o.StartOffset())
 	o.ConsumerStartLast = true

@@ -9,7 +9,7 @@ const envconfigDefaultPrefix = "kafka"
 
 // Options Kafka Context params populated by envconfig in NewClientFromEnv...()
 type Options struct {
-	BootstrapEndpoint  string `required:"false" default:"SASL_SSL://localhost:9092" desc:"Kafka Bootstrap server(s)" split_words:"true"`
+	BootstrapServers   string `required:"false" default:"localhost:9092" desc:"Kafka Bootstrap server(s)" split_words:"true"`
 	ProducerClientID   string `required:"false" default:"kafkaClient" desc:"Client Id for Message Producer" split_words:"true"`
 	ConsumerAPIKey     string `required:"false" default:"" desc:"Kafka API Key Key for consumer (user)"  split_words:"true"`
 	ConsumerAPISecret  string `required:"false" default:"" desc:"Kafka API Secret for consumer (password)" split_words:"true"`

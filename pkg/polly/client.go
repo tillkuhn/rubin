@@ -42,12 +42,11 @@ func defaultMessageReader(config kafka.ReaderConfig) MessageReader {
 
 // Client represents a high level Kafka Consumer Client
 type Client struct {
-	options *Options
 	logger  *zap.SugaredLogger
-	// errChan      chan error
-	wg sync.WaitGroup
+	options *Options
 	// readerFactory makes it easier to Mock readers as it can be overwritten by Tests
 	readerFactory func(config kafka.ReaderConfig) MessageReader
+	wg            sync.WaitGroup
 }
 
 // ConsumeRequest to be passed to Consumer method, identifies the Kafka Topic
@@ -65,7 +64,8 @@ func NewClient(options *Options) *Client {
 		// errChan:      make(chan error, 10),
 	}
 	c.readerFactory = defaultMessageReader
-	logger.Debugf("New Client initialized %s@%s consumerGroupId=%s", c.options.ConsumerAPIKey, c.options.BootstrapEndpoint, c.options.ConsumerGroupID)
+	logger.Debugf("New Client initialized %s@%s consumerGroupId=%s",
+		c.options.ConsumerAPIKey, c.options.BootstrapServers, c.options.ConsumerGroupID)
 	return c
 }
 
@@ -113,7 +113,7 @@ func (c *Client) Consume(ctx context.Context, req ConsumeRequest) error {
 	}
 
 	r := c.readerFactory(kafka.ReaderConfig{
-		Brokers: []string{c.options.BootstrapEndpoint},
+		Brokers: []string{c.options.BootstrapServers},
 		GroupID: c.options.ConsumerGroupID,
 		// Topic:   req.Topic,
 		GroupTopics: []string{req.Topic}, // Can listen to multiple topics
