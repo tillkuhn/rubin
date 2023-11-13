@@ -83,13 +83,13 @@ func NewClientFromEnv() (*Client, error) {
 // CloseWait blocks until the Consumer WaitGroup counter is zero, or timeout is reached
 func (c *Client) CloseWait() {
 	c.logger.Debug("Waiting for Consumer(s) to go down")
-	cTimeout := make(chan struct{})
+	cDone := make(chan struct{})
 	go func() {
-		defer close(cTimeout)
+		defer close(cDone)
 		c.wg.Wait()
 	}()
 	select {
-	case <-cTimeout:
+	case <-cDone:
 		c.logger.Debugf("All Listeners went down within %v timeout", defaultCloseWaitTimeout)
 	case <-time.After(defaultCloseWaitTimeout):
 		c.logger.Debugf("Timeout %v reached, stop waiting for listener shutdown", defaultCloseWaitTimeout)

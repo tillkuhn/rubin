@@ -54,8 +54,14 @@ func run() error {
 	}
 
 	// Nice: we no longer have to manage signal chanel manually https://henvic.dev/posts/signal-notify-context/
+	// also a good intro on different contexts: https://www.sohamkamani.com/golang/context/
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
-	defer stop()
+	// ctxDL, cancelDL := context.WithTimeout(ctx, timeoutAfter)
+	defer func() {
+		stop()
+		p.CloseWait()
+	}()
+
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- p.Consume(ctx, polly.ConsumeRequest{Topic: *topic, Handler: polly.DumpMessage})
@@ -65,11 +71,9 @@ func run() error {
 	case err := <-errChan:
 		fmt.Printf("CLI: Got error from Kafka Consumer: %v\n", err)
 	case <-time.After(timeoutAfter):
-		fmt.Printf("CLI: Timeout after %v\n", timeoutAfter)
+		fmt.Printf("CLI: Deadline exceededafter %v\n", timeoutAfter)
 	case <-ctx.Done():
-		stop() // should be called asap according to docs
 		fmt.Printf("CLI: Context Notified on '%v', waiting for polly subsytem shutdown\n", ctx.Err())
-		p.CloseWait() // make sure wait-group is zero
 	}
 	return nil
 }
