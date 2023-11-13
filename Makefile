@@ -108,6 +108,12 @@ patch: ## Create Patch Release
 		semtag final -s patch; \
   	else echo "This target requires semtag, download from https://github.com/nico2sh/semtag"; fi
 
+.PHONY: minor
+minor: ## Create Minor Release
+	@if hash semtag 2>/dev/null; then \
+		semtag final -s minor; \
+  	else echo "This target requires semtag, download from https://github.com/nico2sh/semtag"; fi
+
 .PHONY: help
 help: ## Shows the help
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
