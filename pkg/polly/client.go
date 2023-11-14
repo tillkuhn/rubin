@@ -80,8 +80,8 @@ func NewClientFromEnv() (*Client, error) {
 	return NewClient(options), nil
 }
 
-// CloseWait blocks until the Consumer WaitGroup counter is zero, or timeout is reached
-func (c *Client) CloseWait() {
+// WaitForClose blocks until the Consumer WaitGroup counter is zero, or timeout is reached
+func (c *Client) WaitForClose() {
 	c.logger.Debug("Waiting for Consumer(s) to go down")
 	cDone := make(chan struct{})
 	go func() {
@@ -96,12 +96,12 @@ func (c *Client) CloseWait() {
 	}
 }
 
-// Consume uses kafka-go Reader which automatically handles reconnections and offset management,
+// Poll uses kafka-go Reader which automatically handles reconnections and offset management,
 // and exposes an API that supports asynchronous cancellations and timeouts using Go contexts.
 // See https://github.com/segmentio/kafka-go#reader-
 // and this nice tutorial https://www.sohamkamani.com/golang/working-with-kafka/
 // doneChan chan<- struct{}
-func (c *Client) Consume(ctx context.Context, req ConsumeRequest) error {
+func (c *Client) Poll(ctx context.Context, req ConsumeRequest) error {
 	c.logger.Infof("Let's consume some yummy Kafka Messages on topic=%s groupID=%s", req.Topic, c.options.ConsumerGroupID)
 	dialer := &kafka.Dialer{
 		SASLMechanism: plain.Mechanism{
@@ -134,7 +134,7 @@ func (c *Client) Consume(ctx context.Context, req ConsumeRequest) error {
 		if err := r.Close(); err != nil {
 			c.logger.Warnf("Error closing reader stream: %v", err)
 		}
-		c.wg.Done() // decrement, CloseWait() will wait for this group and there may be multiple consumers
+		c.wg.Done() // decrement, WaitForClose() will wait for this group and there may be multiple consumers
 		c.logger.Debugf("Post-consume: %s ready for shutdown", req.Topic)
 	}()
 	c.wg.Add(1) // add to wait group to ensure graceful shutdown

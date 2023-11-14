@@ -28,20 +28,25 @@ const (
 	// ...
 )
 
-func TestNew(t *testing.T) {
+func TestNewClient(t *testing.T) {
 	polly, err2 := testClient(t)
 	assert.NotNil(t, polly)
 	assert.NoError(t, err2)
 
 	ctx := context.WithValue(context.Background(), contextKeyTopic, testTopic)
-	err := polly.Consume(ctx, ConsumeRequest{Topic: testTopic, Handler: DumpMessage})
+	err := polly.Poll(ctx, ConsumeRequest{Topic: testTopic, Handler: DumpMessage})
 	assert.NoError(t, err)
-	polly.CloseWait()
+	polly.WaitForClose()
 
 	ctx = context.WithValue(context.Background(), contextKeyTopic, errorTopic)
-	err = polly.Consume(ctx, ConsumeRequest{Topic: errorTopic, Handler: DumpMessage})
+	err = polly.Poll(ctx, ConsumeRequest{Topic: errorTopic, Handler: DumpMessage})
 	assert.Error(t, err)
-	polly.CloseWait()
+	polly.WaitForClose()
+}
+
+func TestRealReader(t *testing.T) {
+	dr := defaultMessageReader(kafka.ReaderConfig{Brokers: []string{"hase"}, Topic: "horst"})
+	assert.NotNil(t, dr)
 }
 
 func testClient(t *testing.T) (*Client, error) {

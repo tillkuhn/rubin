@@ -61,12 +61,12 @@ func run() error {
 	// ctxDL, cancelDL := context.WithTimeout(ctx, timeoutAfter)
 	defer func() {
 		stop()
-		p.CloseWait()
+		p.WaitForClose()
 	}()
 
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- p.Consume(ctx, polly.ConsumeRequest{Topic: *topic, Handler: polly.DumpMessage})
+		errChan <- p.Poll(ctx, polly.ConsumeRequest{Topic: *topic, Handler: polly.DumpMessage})
 	}()
 
 	select {
