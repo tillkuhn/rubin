@@ -1,0 +1,13 @@
+{
+  "specversion": "1.0",
+  "id": "10cf7c33-24c2-4532-941c-213d56f61359",
+  "source": "https://github.com/tillkuhn/rubin/actions/runs/6854033054",
+  "type": "net.timafe.events.ci.published",
+  "subject": "rubin_0.1.4_darwin_amd64.zip",
+  "datacontenttype": "application/json",
+  "time": "2023-11-14T20:45:32Z",
+  "data": {
+    "action": "deploy-api",
+    "repo": "tillkuhn/rubin"
+  }
+}

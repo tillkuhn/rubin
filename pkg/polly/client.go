@@ -3,12 +3,16 @@ package polly
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/tillkuhn/rubin/internal/log"
@@ -26,10 +30,13 @@ const (
 	retentionTime = 10 * time.Minute
 )
 
+// errInvalidContentType used as static error for Kafka messages with unexpected or no content-type header
+var errInvalidContentType = errors.New("invalid content-type")
+
 // HandleMessageFunc consumer will pass received messages to a function that matches this type
 type HandleMessageFunc func(ctx context.Context, message kafka.Message)
 
-// MessageReader interface that makes it easy to mock the real kafka.Reader for testing purposes
+// MessageReader interface that makes it easy to mock the real kafka.Reader in Poll() for testing purposes
 type MessageReader interface {
 	ReadMessage(ctx context.Context) (kafka.Message, error)
 	Close() error
@@ -47,13 +54,6 @@ type Client struct {
 	// readerFactory makes it easier to Mock readers as it can be overwritten by Tests
 	readerFactory func(config kafka.ReaderConfig) MessageReader
 	wg            sync.WaitGroup
-}
-
-// ConsumeRequest to be passed to Consumer method, identifies the Kafka Topic
-// and the ConsumerFunction to handle the messages
-type ConsumeRequest struct {
-	Topic   string
-	Handler HandleMessageFunc
 }
 
 func NewClient(options *Options) *Client {
@@ -80,6 +80,76 @@ func NewClientFromEnv() (*Client, error) {
 	return NewClient(options), nil
 }
 
+// PollRequest to be passed to Consumer method, identifies the Kafka Topic
+// and the ConsumerFunction to handle the messages
+type PollRequest struct {
+	Topic   string
+	Handler HandleMessageFunc
+}
+
+// Poll uses kafka-go Reader which automatically handles reconnections and offset management,
+// and exposes an API that supports asynchronous cancellations and timeouts using Go contexts.
+// See https://github.com/segmentio/kafka-go#reader-
+// and this nice tutorial https://www.sohamkamani.com/golang/working-with-kafka/
+// doneChan chan<- struct{}
+func (c *Client) Poll(ctx context.Context, pr PollRequest) error {
+	c.logger.Infof("Let's consume some yummy Kafka Messages on topic=%s groupID=%s", pr.Topic, c.options.ConsumerGroupID)
+	dialer := &kafka.Dialer{
+		SASLMechanism: plain.Mechanism{
+			Username: c.options.ConsumerAPIKey,
+			Password: c.options.ConsumerAPISecret,
+		},
+		Timeout: defaultDialTimeout, // todo make configurable
+		TLS:     &tls.Config{MinVersion: tls.VersionTLS12},
+	}
+
+	r := c.readerFactory(kafka.ReaderConfig{
+		Brokers: []string{c.options.BootstrapServers},
+		GroupID: c.options.ConsumerGroupID,
+		// Topic:   pr.Topic,
+		GroupTopics: []string{pr.Topic}, // Can listen to multiple topics
+		// kafka polls the cluster to check if there is any new data on the topic for the my-group kafka ID,
+		// the cluster will only respond if there are at least 10 new bytes of information to send.
+		MinBytes: minConsumeBytes,
+		MaxBytes: maxConsumeBytes,
+		Dialer:   dialer,
+		// RetentionTime optionally sets the length of time the consumer group will be saved
+		RetentionTime:  retentionTime,
+		StartOffset:    c.options.StartOffset(), // see godoc for details
+		CommitInterval: 1 * time.Second,         // flushes commits to Kafka every  x seconds
+		Logger:         LoggerWrapper{delegate: c.logger},
+		ErrorLogger:    ErrorLoggerWrapper{delegate: c.logger},
+	})
+	defer func() {
+		c.logger.Debugf("Post-consume: closing reader stream for topic %s", pr.Topic)
+		if err := r.Close(); err != nil {
+			c.logger.Warnf("Error closing reader stream: %v", err)
+		}
+		c.wg.Done() // decrement, WaitForClose() will wait for this group as there may be multiple consumers
+		c.logger.Debugf("Post-consume: %s ready for shutdown", pr.Topic)
+	}()
+	c.wg.Add(1) // add to wait group to ensure graceful shutdown
+
+	var rcvCount int32 // thx https://github.com/cloudevents/sdk-go/blob/main/samples/kafka/sender-receiver/main.go
+	maxReceive := c.options.ConsumerMaxReceive
+	for maxReceive < 0 || atomic.AddInt32(&rcvCount, 1) <= maxReceive {
+		// SimpleMessageStream reads and return the next message from the r. The method call
+		// blocks until a message becomes available, or an error occurs.
+		msg, err := r.ReadMessage(ctx)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				c.logger.Debugf("Reader has been closed (ctx err: %v)", ctx.Err())
+			} else {
+				c.logger.Errorf("Error on message read: %v", err)
+				return err // really?, or better use c.errChan <- err
+			}
+			break
+		}
+		pr.Handler(ctx, msg)
+	}
+	return nil
+}
+
 // WaitForClose blocks until the Consumer WaitGroup counter is zero, or timeout is reached
 func (c *Client) WaitForClose() {
 	c.logger.Debug("Waiting for Consumer(s) to go down")
@@ -96,71 +166,25 @@ func (c *Client) WaitForClose() {
 	}
 }
 
-// Poll uses kafka-go Reader which automatically handles reconnections and offset management,
-// and exposes an API that supports asynchronous cancellations and timeouts using Go contexts.
-// See https://github.com/segmentio/kafka-go#reader-
-// and this nice tutorial https://www.sohamkamani.com/golang/working-with-kafka/
-// doneChan chan<- struct{}
-func (c *Client) Poll(ctx context.Context, req ConsumeRequest) error {
-	c.logger.Infof("Let's consume some yummy Kafka Messages on topic=%s groupID=%s", req.Topic, c.options.ConsumerGroupID)
-	dialer := &kafka.Dialer{
-		SASLMechanism: plain.Mechanism{
-			Username: c.options.ConsumerAPIKey,
-			Password: c.options.ConsumerAPISecret,
-		},
-		Timeout: defaultDialTimeout, // todo make configurable
-		TLS:     &tls.Config{MinVersion: tls.VersionTLS12},
-	}
-
-	r := c.readerFactory(kafka.ReaderConfig{
-		Brokers: []string{c.options.BootstrapServers},
-		GroupID: c.options.ConsumerGroupID,
-		// Topic:   req.Topic,
-		GroupTopics: []string{req.Topic}, // Can listen to multiple topics
-		// kafka polls the cluster to check if there is any new data on the topic for the my-group kafka ID,
-		// the cluster will only respond if there are at least 10 new bytes of information to send.
-		MinBytes: minConsumeBytes,
-		MaxBytes: maxConsumeBytes,
-		Dialer:   dialer,
-		// RetentionTime optionally sets the length of time the consumer group will be saved
-		RetentionTime:  retentionTime,
-		StartOffset:    c.options.StartOffset(), // see godoc for details
-		CommitInterval: 1 * time.Second,         // flushes commits to Kafka every  x seconds
-		Logger:         LoggerWrapper{delegate: c.logger},
-		ErrorLogger:    ErrorLoggerWrapper{delegate: c.logger},
-	})
-	defer func() {
-		c.logger.Debugf("Post-consume: closing reader stream for topic %s", req.Topic)
-		if err := r.Close(); err != nil {
-			c.logger.Warnf("Error closing reader stream: %v", err)
-		}
-		c.wg.Done() // decrement, WaitForClose() will wait for this group and there may be multiple consumers
-		c.logger.Debugf("Post-consume: %s ready for shutdown", req.Topic)
-	}()
-	c.wg.Add(1) // add to wait group to ensure graceful shutdown
-
-	var rcvCount int32 // thx https://github.com/cloudevents/sdk-go/blob/main/samples/kafka/sender-receiver/main.go
-	maxReceive := c.options.ConsumerMaxReceive
-	for maxReceive < 0 || atomic.AddInt32(&rcvCount, 1) <= maxReceive {
-		// ReadMessage reads and return the next message from the r. The method call
-		// blocks until a message becomes available, or an error occurs.
-		msg, err := r.ReadMessage(ctx)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				c.logger.Debugf("Reader has been closed (ctx err: %v)", ctx.Err())
-			} else {
-				c.logger.Errorf("Error on message read: %v", err)
-				return err // really?, or better use c.errChan <- err
-			}
-			break
-		}
-		req.Handler(ctx, msg)
-	}
-	return nil
-}
-
 // DumpMessage simple handler function that can be used as HandleMessageFunc and simply dumps information
 // about the received Kafka Message and the payload container therein
 func DumpMessage(_ context.Context, message kafka.Message) {
 	fmt.Printf(" kafka.Message: %s %d/%d %s\n", message.Topic, message.Partition, message.Offset, string(message.Value))
+}
+
+// AsCloudEvent Helper function to unmarshal Kafka Message into a CloudEvent
+func AsCloudEvent(message kafka.Message) (cloudevents.Event, error) {
+	// 	request.Headers["content-type"] = cloudevents.ApplicationCloudEventsJSON + "; charset=UTF-8"
+	event := cloudevents.NewEvent()
+	var cType string
+	for _, h := range message.Headers {
+		if h.Key == "content-type" {
+			cType = string(h.Value)
+		}
+	}
+	if !strings.HasPrefix(cType, cloudevents.ApplicationCloudEventsJSON) {
+		return event, fmt.Errorf("%w value %s not supported, expected %s", errInvalidContentType, cType, cloudevents.ApplicationCloudEventsJSON)
+	}
+	err := json.Unmarshal(message.Value, &event)
+	return event, err
 }

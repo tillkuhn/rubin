@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/segmentio/kafka-go"
+
 	"github.com/pkg/errors"
 
 	"github.com/joho/godotenv"
@@ -41,6 +43,8 @@ func run() error {
 	logger := log.New()
 
 	var topic = flag.String("topic", "", "Kafka topic for message consumption ")
+	var ce = flag.Bool("ce", false, "except CloudEvents format for event payload")
+
 	var envFile = flag.String("env-file", "", "location of environment variable file e.g. /tmp/.env")
 	flag.Parse() // call after all flags are defined and before flags are accessed by the program
 	if *envFile != "" {
@@ -64,9 +68,13 @@ func run() error {
 		p.WaitForClose()
 	}()
 
+	handler := polly.DumpMessage
+	if *ce {
+		handler = DumpCloudEvent
+	}
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- p.Poll(ctx, polly.ConsumeRequest{Topic: *topic, Handler: polly.DumpMessage})
+		errChan <- p.Poll(ctx, polly.PollRequest{Topic: *topic, Handler: handler})
 	}()
 
 	select {
@@ -78,4 +86,13 @@ func run() error {
 		logger.Infof("CLI: Context Notified on '%v', waiting for polly subsytem shutdown\n", ctx.Err())
 	}
 	return nil
+}
+
+func DumpCloudEvent(_ context.Context, message kafka.Message) {
+	ce, err := polly.AsCloudEvent(message)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("%d/%d type %s\npayload: %v\n", message.Partition, message.Offset, ce.Type(), ce)
 }

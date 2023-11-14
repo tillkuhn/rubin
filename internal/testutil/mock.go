@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	sampleDir   = "../../testdata"
+	TestDataDir = "../../testdata"
 	ClusterID   = "abc-r2d2"
 	topicPrefix = "public.hello"
 )
@@ -19,7 +19,7 @@ func ServerMock() *httptest.Server {
 	for _, code := range []int{http.StatusOK, http.StatusBadRequest /*400*/, http.StatusForbidden /*403*/} {
 		handler.HandleFunc(
 			fmt.Sprintf("/kafka/v3/clusters/%s/topics/%s/records", ClusterID, Topic(code)),
-			mockHandler(fmt.Sprintf("%s/response-%d.json", sampleDir, code)),
+			mockHandler(fmt.Sprintf("%s/response-%d.json", TestDataDir, code)),
 		)
 	}
 	srv := httptest.NewServer(handler)

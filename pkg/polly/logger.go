@@ -15,7 +15,7 @@ type LoggerWrapper struct {
 }
 
 func (l LoggerWrapper) Printf(format string, v ...interface{}) {
-	l.delegate.Debugf("kafka-go "+format, v...)
+	l.delegate.Debugf("kafka-go: "+format, v...)
 }
 
 type ErrorLoggerWrapper struct {
@@ -23,5 +23,5 @@ type ErrorLoggerWrapper struct {
 }
 
 func (l ErrorLoggerWrapper) Printf(format string, v ...interface{}) {
-	l.delegate.Errorf("kafka-go "+format, v...)
+	l.delegate.Errorf("kafka-go: "+format, v...)
 }

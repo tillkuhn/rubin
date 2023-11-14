@@ -9,6 +9,9 @@ import (
 	"testing"
 	"time"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/tillkuhn/rubin/internal/testutil"
+
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -34,16 +37,38 @@ func TestNewClient(t *testing.T) {
 	assert.NoError(t, err2)
 
 	ctx := context.WithValue(context.Background(), contextKeyTopic, testTopic)
-	err := polly.Poll(ctx, ConsumeRequest{Topic: testTopic, Handler: DumpMessage})
+	err := polly.Poll(ctx, PollRequest{Topic: testTopic, Handler: DumpMessage})
 	assert.NoError(t, err)
 	polly.WaitForClose()
 
 	ctx = context.WithValue(context.Background(), contextKeyTopic, errorTopic)
-	err = polly.Poll(ctx, ConsumeRequest{Topic: errorTopic, Handler: DumpMessage})
+	err = polly.Poll(ctx, PollRequest{Topic: errorTopic, Handler: DumpMessage})
 	assert.Error(t, err)
 	polly.WaitForClose()
 }
 
+func TestCloudEvent(t *testing.T) {
+	respBytes, err := os.ReadFile(testutil.TestDataDir + "/cloudevent-ci.json")
+	assert.NoError(t, err)
+	km := kafka.Message{
+		Topic:     "ci.events",
+		Partition: 0,
+		Offset:    0,
+		Key:       []byte("key/123"),
+		Value:     respBytes,
+		Headers:   nil,
+		Time: time.Date(2020, time.April,
+			11, 21, 34, 01, 0, time.UTC),
+	}
+	_, err = AsCloudEvent(km)
+	assert.ErrorContains(t, err, "invalid content-type")
+
+	// try again with the correct Header
+	km.Headers = []kafka.Header{{Key: "content-type", Value: []byte(cloudevents.ApplicationCloudEventsJSON)}}
+	ce, err := AsCloudEvent(km)
+	assert.NoError(t, err)
+	assert.Equal(t, "net.timafe.events.ci.published", ce.Type())
+}
 func TestRealReader(t *testing.T) {
 	dr := defaultMessageReader(kafka.ReaderConfig{Brokers: []string{"hase"}, Topic: "horst"})
 	assert.NotNil(t, dr)
@@ -70,6 +95,7 @@ func mockMessageReader(_ kafka.ReaderConfig) MessageReader {
 	return &MockMessageReader{}
 }
 
+// MockMessageReader is used instead of the real kafka.Reader to produce a stream of kafka messages for unit testing
 type MockMessageReader struct {
 	offset int64
 }

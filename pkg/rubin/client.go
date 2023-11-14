@@ -110,10 +110,10 @@ func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResp
 	if request.AsCloudEvent {
 		// wrap data into a Cloud Event
 		ce, err := NewCloudEvent(request.Source, request.Type, request.Data)
-		ce.SetSubject(request.Subject)
 		if err != nil {
 			return prodResp, err
 		}
+		ce.SetSubject(request.Subject)
 		request.Data = ce
 	}
 
