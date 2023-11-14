@@ -62,7 +62,6 @@ func run() error {
 	// Nice: we no longer have to manage signal chanel manually https://henvic.dev/posts/signal-notify-context/
 	// also a good intro on different contexts: https://www.sohamkamani.com/golang/context/
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
-	// ctxDL, cancelDL := context.WithTimeout(ctx, timeoutAfter)
 	defer func() {
 		stop()
 		p.WaitForClose()
@@ -80,6 +79,7 @@ func run() error {
 	select {
 	case err := <-errChan:
 		logger.Infof("CLI: Got error from Kafka Consumer: %v\n", err)
+		return err
 	case <-time.After(timeoutAfter):
 		logger.Infof("CLI: Deadline exceededafter %v\n", timeoutAfter)
 	case <-ctx.Done():
