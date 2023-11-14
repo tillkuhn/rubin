@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/joho/godotenv"
+	"github.com/tillkuhn/rubin/internal/log"
 
 	"github.com/tillkuhn/rubin/pkg/polly"
 )
@@ -38,11 +38,13 @@ func main() {
 }
 
 func run() error {
+	logger := log.New()
+
 	var topic = flag.String("topic", "", "Kafka topic for message consumption ")
 	var envFile = flag.String("env-file", "", "location of environment variable file e.g. /tmp/.env")
 	flag.Parse() // call after all flags are defined and before flags are accessed by the program
 	if *envFile != "" {
-		log.Printf("Loading environment from custom location %s", *envFile)
+		logger.Infof("Loading environment from custom location %s", *envFile)
 		err := godotenv.Load(*envFile)
 		if err != nil {
 			return errors.Wrap(err, "Error Loading environment vars from "+*envFile)
@@ -69,11 +71,11 @@ func run() error {
 
 	select {
 	case err := <-errChan:
-		fmt.Printf("CLI: Got error from Kafka Consumer: %v\n", err)
+		logger.Infof("CLI: Got error from Kafka Consumer: %v\n", err)
 	case <-time.After(timeoutAfter):
-		fmt.Printf("CLI: Deadline exceededafter %v\n", timeoutAfter)
+		logger.Infof("CLI: Deadline exceededafter %v\n", timeoutAfter)
 	case <-ctx.Done():
-		fmt.Printf("CLI: Context Notified on '%v', waiting for polly subsytem shutdown\n", ctx.Err())
+		logger.Infof("CLI: Context Notified on '%v', waiting for polly subsytem shutdown\n", ctx.Err())
 	}
 	return nil
 }
