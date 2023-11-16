@@ -80,53 +80,24 @@ func NewClientFromEnv() (*Client, error) {
 	return NewClient(options), nil
 }
 
-// PollRequest to be passed to Consumer method, identifies the Kafka Topic
-// and the ConsumerFunction to handle the messages
-type PollRequest struct {
-	Topic   string
-	Handler HandleMessageFunc
-}
-
 // Poll uses kafka-go Reader which automatically handles reconnections and offset management,
 // and exposes an API that supports asynchronous cancellations and timeouts using Go contexts.
 // See https://github.com/segmentio/kafka-go#reader-
 // and this nice tutorial https://www.sohamkamani.com/golang/working-with-kafka/
 // doneChan chan<- struct{}
-func (c *Client) Poll(ctx context.Context, pr PollRequest) error {
-	c.logger.Infof("Let's consume some yummy Kafka Messages on topic=%s groupID=%s", pr.Topic, c.options.ConsumerGroupID)
-	dialer := &kafka.Dialer{
-		SASLMechanism: plain.Mechanism{
-			Username: c.options.ConsumerAPIKey,
-			Password: c.options.ConsumerAPISecret,
-		},
-		Timeout: defaultDialTimeout, // todo make configurable
-		TLS:     &tls.Config{MinVersion: tls.VersionTLS12},
-	}
+func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler HandleMessageFunc) error {
+	c.applyDefaults(&rc)
+	topics := rc.GroupTopics
+	c.logger.Infof("Let's consume some yummy Kafka Messages on topic=%s groupID=%s", topics, c.options.ConsumerGroupID)
 
-	r := c.readerFactory(kafka.ReaderConfig{
-		Brokers: []string{c.options.BootstrapServers},
-		GroupID: c.options.ConsumerGroupID,
-		// Topic:   pr.Topic,
-		GroupTopics: []string{pr.Topic}, // Can listen to multiple topics
-		// kafka polls the cluster to check if there is any new data on the topic for the my-group kafka ID,
-		// the cluster will only respond if there are at least 10 new bytes of information to send.
-		MinBytes: minConsumeBytes,
-		MaxBytes: maxConsumeBytes,
-		Dialer:   dialer,
-		// RetentionTime optionally sets the length of time the consumer group will be saved
-		RetentionTime:  retentionTime,
-		StartOffset:    c.options.StartOffset(), // see godoc for details
-		CommitInterval: 1 * time.Second,         // flushes commits to Kafka every  x seconds
-		Logger:         LoggerWrapper{delegate: c.logger},
-		ErrorLogger:    ErrorLoggerWrapper{delegate: c.logger},
-	})
+	r := c.readerFactory(rc)
 	defer func() {
-		c.logger.Debugf("Post-consume: closing reader stream for topic %s", pr.Topic)
+		c.logger.Debugf("Post-consume: closing reader stream for topic %s", topics)
 		if err := r.Close(); err != nil {
 			c.logger.Warnf("Error closing reader stream: %v", err)
 		}
 		c.wg.Done() // decrement, WaitForClose() will wait for this group as there may be multiple consumers
-		c.logger.Debugf("Post-consume: %s ready for shutdown", pr.Topic)
+		c.logger.Debugf("Post-consume: %s ready for shutdown", topics)
 	}()
 	c.wg.Add(1) // add to wait group to ensure graceful shutdown
 
@@ -145,9 +116,36 @@ func (c *Client) Poll(ctx context.Context, pr PollRequest) error {
 			}
 			break
 		}
-		pr.Handler(ctx, msg)
+		msgHandler(ctx, msg)
 	}
 	return nil
+}
+
+func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
+	dialer := &kafka.Dialer{
+		SASLMechanism: plain.Mechanism{
+			Username: c.options.ConsumerAPIKey,
+			Password: c.options.ConsumerAPISecret,
+		},
+		Timeout: defaultDialTimeout, // todo make configurable
+		TLS:     &tls.Config{MinVersion: tls.VersionTLS12},
+	}
+
+	rc.Brokers = []string{c.options.BootstrapServers}
+	rc.GroupID = c.options.ConsumerGroupID
+	// Topic=   pr.Topic
+	// rc.GroupTopics= []string{pr.Topic} // Can listen to multiple topics
+	// kafka polls the cluster to check if there is any new data on the topic for the my-group kafka ID,
+	// the cluster will only respond if there are at least 10 new bytes of information to send.
+	rc.MinBytes = minConsumeBytes
+	rc.MaxBytes = maxConsumeBytes
+	rc.Dialer = dialer
+	// RetentionTime optionally sets the length of time the consumer group will be saved
+	rc.RetentionTime = retentionTime
+	rc.StartOffset = c.options.StartOffset() // see godoc for details
+	rc.CommitInterval = 1 * time.Second      // flushes commits to Kafka every  x seconds
+	rc.Logger = LoggerWrapper{delegate: c.logger}
+	rc.ErrorLogger = ErrorLoggerWrapper{delegate: c.logger}
 }
 
 // WaitForClose blocks until the Consumer WaitGroup counter is zero, or timeout is reached

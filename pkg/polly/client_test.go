@@ -37,12 +37,12 @@ func TestNewClient(t *testing.T) {
 	assert.NoError(t, err2)
 
 	ctx := context.WithValue(context.Background(), contextKeyTopic, testTopic)
-	err := polly.Poll(ctx, PollRequest{Topic: testTopic, Handler: DumpMessage})
+	err := polly.Poll(ctx, kafka.ReaderConfig{Topic: testTopic}, DumpMessage)
 	assert.NoError(t, err)
 	polly.WaitForClose()
 
 	ctx = context.WithValue(context.Background(), contextKeyTopic, errorTopic)
-	err = polly.Poll(ctx, PollRequest{Topic: errorTopic, Handler: DumpMessage})
+	err = polly.Poll(ctx, kafka.ReaderConfig{Topic: errorTopic}, DumpMessage)
 	assert.Error(t, err)
 	polly.WaitForClose()
 }

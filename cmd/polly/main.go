@@ -73,7 +73,7 @@ func run() error {
 	}
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- p.Poll(ctx, polly.PollRequest{Topic: *topic, Handler: handler})
+		errChan <- p.Poll(ctx, kafka.ReaderConfig{Topic: *topic}, handler)
 	}()
 
 	select {

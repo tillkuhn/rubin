@@ -12,7 +12,7 @@ import (
 // Test error handling (does not require server mock)
 func TestRunMainWithImmediateTimeout(t *testing.T) {
 	// resetEnvAndFlags()
-	//setupMock()
+	// setupMock()
 	timeoutAfter = 10 * time.Millisecond // speed up timeout
 	os.Args = []string{"noop", "-topic", testutil.Topic(200), "-ce"}
 	errMain := run()
