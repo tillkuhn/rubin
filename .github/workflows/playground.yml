@@ -16,16 +16,17 @@ jobs:
           unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }} && chmod u+g ${{ runner.temp }}/rubin
 
       - name: Test Kafka Messaging
+        id: test-kafka-messaging
         # GitHub vars: https://dev.to/mihinduranasinghe/working-with-environment-variables-github-actions-part-2-46po
         # https://stackoverflow.com/questions/59073850/github-actions-get-url-of-test-build
-        # GITHUB_REPOSITORY=<github-org>/rubin GITHUB_WORKFLOW=playground (w/o .yml)
+        # GITHUB_REPOSITORY=<github-org>/rubin  GITHUB_ACTION=
+        # GITHUB_WORKFLOW=playground name of the workflow on top, or basename of yml file
         run: |
-          ${{ runner.temp }}/rubin -key "${GITHUB_REPOSITORY}/${GITHUB_RUN_ID}" -ce \
+          ${{ runner.temp }}/rubin -key "${GITHUB_REPOSITORY}" -ce \
           -source "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-          -type "net.timafe.events.ci.published.v1" -subject "$GITHUB_REPOSITORY" \
+          -type "net.timafe.event.ci.published.v1" -subject "${GITHUB_REPOSITORY}/some-subject" \
           -record "{\"action\":\"$GITHUB_ACTION\",\"version\":\"${GITHUB_REF#refs/*/}\",\"commit\":\"$GITHUB_SHA\"}" \
-          -header "workflow=$GITHUB_WORKFLOW"
+          -header "github_run_id=${GITHUB_RUN_ID}"
         env:
-          # shared with HCP Vault
           KAFKA_PRODUCER_TOPIC_URL: ${{ secrets.KAFKA_PRODUCER_TOPIC_URL }}
           KAFKA_PRODUCER_API_SECRET: ${{ secrets.KAFKA_PRODUCER_API_SECRET }}
