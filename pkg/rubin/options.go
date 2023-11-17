@@ -16,7 +16,7 @@ const (
 
 // Options keeps the settings to set up client connection.
 type Options struct {
-	TopicURL string `yaml:"topic_url" default:"" required:"false" desc:"Topic URL (alternative to RestEndpoint, ClusterID etc.)"  split_words:"true"`
+	TopicURL string `yaml:"topic_url" default:"" required:"false" desc:"Rest Proxy Topic URL (https://user@host/kafka/v3/clusters/123/topics/hello" split_words:"true"`
 	// RestEndpoint for kafka rest proxy api
 	RestEndpoint string `yaml:"rest_endpoint" default:"" required:"false" desc:"Kafka REST Proxy Endpoint"  split_words:"true"`
 	// ClusterID of kafka cluster (which becomes part of the URL)
@@ -49,13 +49,14 @@ func (o Options) String() string {
 
 // BasicAuth returns the base64 encoded authentication string to be used as Auth Header for REST Proxy Http request
 func (o Options) BasicAuth() string {
+	user := o.ProducerAPIKey
 	if o.TopicURL != "" {
 		u, err := url.Parse(o.TopicURL)
 		if err == nil && u.User != nil {
-			o.ProducerAPIKey = u.User.Username() // set resp. overwrite
+			user = u.User.Username() // set resp. overwrite
 		}
 	}
-	return b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", o.ProducerAPIKey, o.ProducerAPISecret)))
+	return b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", user, o.ProducerAPISecret)))
 }
 
 // RecordEndpoint returns the REST API endpoint for producing messages, basic on endpoint, cluster and topic
@@ -65,9 +66,21 @@ func (o Options) RecordEndpoint(topic string) string {
 	case o.TopicURL == "":
 		return fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", o.RestEndpoint, o.ClusterID, topic)
 	case topic != "":
-		urlParts := strings.Split(o.TopicURL, "/") // remove default topic from url
+		urlParts := strings.Split(sanitizeURL(o.TopicURL), "/") // remove default topic from url
 		return fmt.Sprintf("%s/%s/%s", strings.Join(urlParts[:len(urlParts)-1], "/"), topic, "records")
 	default:
-		return fmt.Sprintf("%s/%s", o.TopicURL, "records")
+		return fmt.Sprintf("%s/%s", sanitizeURL(o.TopicURL), "records")
 	}
+}
+
+// sanitizeURL removes optional user and password info from URL
+func sanitizeURL(urlStr string) string {
+	if urlStr != "" {
+		u, err := url.Parse(urlStr)
+		if err == nil && u.User != nil {
+			// strip user[:password]@ part from url as this is also not supported by confluent
+			urlStr = strings.ReplaceAll(urlStr, u.User.String()+"@", "")
+		}
+	}
+	return urlStr
 }

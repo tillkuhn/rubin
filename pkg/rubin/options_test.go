@@ -49,8 +49,12 @@ func TestBasicAuth(t *testing.T) {
 	}
 	assert.Equal(t, "dXNlcjpwYXNzd29yZA==", o.BasicAuth())
 
-	// test with use encoded in url
+	// test with user encoded in url
 	o.TopicURL = "https://friendOfSomeUser@some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world"
+	assert.Equal(t, "ZnJpZW5kT2ZTb21lVXNlcjpwYXNzd29yZA==", o.BasicAuth())
+
+	// test with user + pass encoded in url
+	o.TopicURL = "https://friendOfSomeUser:notYourBusiness@some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world"
 	assert.Equal(t, "ZnJpZW5kT2ZTb21lVXNlcjpwYXNzd29yZA==", o.BasicAuth())
 }
 
@@ -69,6 +73,9 @@ func TestEndpoint(t *testing.T) {
 	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world/records", a2)
 
 	// default topic configured with topic URL, with request specific topic (topic name should be overwritten)
-	a3 := o.RecordEndpoint("small.world")
-	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/small.world/records", a3)
+	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/small.world/records", o.RecordEndpoint("small.world"))
+
+	// make sure that user and pw data is stripped from url
+	o.TopicURL = "https://user123:nix@some.cloud:443/kafka/v3/clusters/abc-932/topics/user.world"
+	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/user.world/records", o.RecordEndpoint(""))
 }
