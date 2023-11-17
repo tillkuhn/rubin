@@ -22,35 +22,34 @@ jobs:
           - linux/amd64
           - linux/arm64
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      -
-        name: Set Variables used in build-args for docker build
+
+      - name: Set Variables used in build-args for docker build
         run: |
           echo "APP_COMMIT=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
           echo "APP_VERSION=${GITHUB_REF#refs/*/}" >> "$GITHUB_ENV"
           echo "APP_DATE=$(date +'%Y-%m-%dT%H:%M:%S')" >> "$GITHUB_ENV"
           echo "APP_BUILT_BY=docker/build-push-action" >> "$GITHUB_ENV"
-      -
-        name: Extract metadata (tags, labels) for Docker
+
+      - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      -
-        name: Set up QEMU
+
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
           # since we run platform specific builds in parallel, we only need the current platform
           platforms: ${{ matrix.platform }}
-      -
-        name: Set up Docker Buildx for Multiple platform builds
+
+      - name: Set up Docker Buildx for Multiple platform builds
         uses: docker/setup-buildx-action@v3
-      -
-        name: Login to GitHub Container Registry
+
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -58,8 +57,8 @@ jobs:
           username: ${{ github.actor }}
           # You can use the automatically-generated GITHUB_TOKEN secret for the password
           password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build docker image
+
+      - name: Build docker image
         id: build # so we can reference this step as ${{ steps.build.outputs.digest }} in export step
         uses: docker/build-push-action@v4
         with:
@@ -78,14 +77,14 @@ jobs:
             APP_BUILT_BY=${{ env.APP_BUILT_BY }}
           # capture output for export and upload image digests
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
-      -
-        name: Export image digest
+
+      - name: Export image digest
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
-      -
-        name: Upload image digest
+
+      - name: Upload image digest
         uses: actions/upload-artifact@v3
         with:
           name: digests
@@ -103,36 +102,51 @@ jobs:
     needs:
       - ghcr-releaser
     steps:
-      -
-        name: Download image digests
+      - name: Download image digests
         uses: actions/download-artifact@v3
         with:
           name: digests
           path: /tmp/digests
-      -
-        name: Set up Docker Buildx # but no need for QEMU in this job
+
+      - name: Set up Docker Buildx # but no need for QEMU in this job
         uses: docker/setup-buildx-action@v3
-      -
-        name: Extract docker metadata (tags, labels)
+
+      - name: Extract docker metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      -
-        name: Login to GitHub Container Registry
+
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Create manifest list and push
+
+      - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
-      -
-        name: Inspect and test new multi-platform image
+      - name: Inspect and test new multi-platform image
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} -help
+
+      - name: Install latest rubin Kafka Record producer
+        run: |
+          curl -LsSo ${{ runner.temp }}/rubin.zip $(curl -LsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
+          unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }} && chmod u+g ${{ runner.temp }}/rubin
+
+      - name: Produce Kafka Publish Event
+        id: send-kafka-publish-event
+        run: |
+          ${{ runner.temp }}/rubin -key "${GITHUB_REPOSITORY}/${GITHUB_RUN_ID}" -ce \
+          -source "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          -type "net.timafe.events.ci.published.v1" -subject "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}" \
+          -record "{\"action\":\"$GITHUB_ACTION\",\"version\":\"${GITHUB_REF#refs/*/}\",\"commit\":\"$GITHUB_SHA\"}" \
+          -header "workflow=$GITHUB_WORKFLOW"
+        env:
+          KAFKA_PRODUCER_TOPIC_URL: ${{ secrets.KAFKA_PRODUCER_TOPIC_URL }}
+          KAFKA_PRODUCER_API_SECRET: ${{ secrets.KAFKA_PRODUCER_API_SECRET }}
