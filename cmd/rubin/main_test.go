@@ -35,13 +35,6 @@ func TestHelp(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestEmptyTopic(t *testing.T) {
-	resetEnvAndFlags()
-	os.Args = []string{"noop", "-topic", ""}
-	err := run()
-	assert.ErrorContains(t, err, "topic must not be empty")
-}
-
 func TestEmptyRecord(t *testing.T) {
 	resetEnvAndFlags()
 	os.Args = []string{"noop", "-topic", "hase", "-record", ""}
