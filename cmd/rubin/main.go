@@ -9,6 +9,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/joho/godotenv"
+
 	"github.com/pkg/errors"
 
 	"github.com/kelseyhightower/envconfig"
@@ -70,6 +72,7 @@ func run() error {
 	source := flag.String("source", "rubin/cli", "CloudEventy: The context in which an event happened")
 	subject := flag.String("subject", "", "CloudEventy: The subject of the event in the context of the event producer")
 	topic := flag.String("topic", "", "Name of target Kafka Topic")
+	envFile := flag.String("env-file", "", "location of environment variable file e.g. /tmp/.env")
 	eType := flag.String("type", "event.Event", "CloudEvents: Type of event related to the originating occurrence")
 	verbosity := flag.String("v", "info", "Verbosity, one of 'debug', 'info', 'warn', 'error'")
 	var headers arrayFlags
@@ -77,18 +80,19 @@ func run() error {
 
 	// nice: we can also use flags for maps https://www.emmanuelgautier.com/blog/string-map-command-argument-go
 	flag.Parse()
+	if *envFile != "" {
+		fmt.Printf("Loading environment from custom location %s", *envFile)
+		err := godotenv.Load(*envFile)
+		if err != nil {
+			return errors.Wrap(err, "Error Loading environment vars from "+*envFile)
+		}
+	}
 	if *help || len(os.Args) < 2 {
 		showHelp()
 		return nil
 	}
-
-	// Validate mandatory args
-	if strings.TrimSpace(*topic) == "" {
-		return errors.Wrap(errClient, "kafka topic must not be empty")
-	}
-	// Validate mandatory args
-	if strings.TrimSpace(*record) == "" {
-		return errors.Wrap(errClient, "message record must not be empty")
+	if err := validateArgs(topic, record); err != nil {
+		return err
 	}
 	headerMap := make(map[string]string)
 	minParts := 2 // golangci treats 2 as a magic number
@@ -132,4 +136,16 @@ func showHelp() {
 	fmt.Println("\nIn addition, the following CLI arguments are supported")
 	flag.PrintDefaults()
 	fmt.Println()
+}
+
+func validateArgs(topic *string, record *string) error {
+	// Validate mandatory args
+	if strings.TrimSpace(*topic) == "" {
+		return errors.Wrap(errClient, "kafka topic must not be empty")
+	}
+	// Validate mandatory args
+	if strings.TrimSpace(*record) == "" {
+		return errors.Wrap(errClient, "message record must not be empty")
+	}
+	return nil
 }

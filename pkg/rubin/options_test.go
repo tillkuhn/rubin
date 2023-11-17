@@ -1,6 +1,8 @@
 package rubin
 
 import (
+	"encoding/base64"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -47,15 +49,15 @@ func TestBasicAuth(t *testing.T) {
 		ProducerAPIKey:    "user",
 		ProducerAPISecret: "password",
 	}
-	assert.Equal(t, "dXNlcjpwYXNzd29yZA==", o.BasicAuth())
+	assert.Equal(t, "user:password", mustB64Decode(o.BasicAuth()))
 
 	// test with user encoded in url
-	o.TopicURL = "https://friendOfSomeUser@some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world"
-	assert.Equal(t, "ZnJpZW5kT2ZTb21lVXNlcjpwYXNzd29yZA==", o.BasicAuth())
+	o.ProducerTopicURL = mustParseURL("https://friendOfSomeUser@some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world")
+	assert.Equal(t, "friendOfSomeUser:password", mustB64Decode(o.BasicAuth()))
 
 	// test with user + pass encoded in url
-	o.TopicURL = "https://friendOfSomeUser:notYourBusiness@some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world"
-	assert.Equal(t, "ZnJpZW5kT2ZTb21lVXNlcjpwYXNzd29yZA==", o.BasicAuth())
+	o.ProducerTopicURL = mustParseURL("https://friendOfSomeUser:notYourBusiness@some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world")
+	assert.Equal(t, "friendOfSomeUser:notYourBusiness", mustB64Decode(o.BasicAuth()))
 }
 
 func TestEndpoint(t *testing.T) {
@@ -68,7 +70,7 @@ func TestEndpoint(t *testing.T) {
 	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/lka-123/topics/hello.world/records", a)
 
 	// default topic configured with topic URL, no request specific topic
-	o.TopicURL = "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world"
+	o.ProducerTopicURL = mustParseURL("https://some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world")
 	a2 := o.RecordEndpoint("")
 	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world/records", a2)
 
@@ -76,6 +78,39 @@ func TestEndpoint(t *testing.T) {
 	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/small.world/records", o.RecordEndpoint("small.world"))
 
 	// make sure that user and pw data is stripped from url
-	o.TopicURL = "https://user123:nix@some.cloud:443/kafka/v3/clusters/abc-932/topics/user.world"
+	o.ProducerTopicURL = mustParseURL("https://user123:nix@some.cloud:443/kafka/v3/clusters/abc-932/topics/user.world")
 	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/user.world/records", o.RecordEndpoint(""))
+
+	// test via env
+	defer os.Clearenv()
+	_ = os.Setenv(strings.ToUpper(envconfigDefaultPrefix)+"_PRODUCER_TOPIC_URL", "https://env123:nixEnv@env.cloud:443/kafka/v3/clusters/env-932/topics/env.world")
+	oe, err := NewOptionsFromEnv()
+	oe.ProducerAPISecret = "viaAPISecret" // should not matter if pw is part of the URL
+	assert.NoError(t, err)
+	assert.Equal(t, "https://env.cloud:443/kafka/v3/clusters/env-932/topics/env.world/records", oe.RecordEndpoint(""))
+	assert.Equal(t, "env123:nixEnv", mustB64Decode(oe.BasicAuth()))
+
+	// but now ProducerAPISecret should kick in
+	_ = os.Setenv(strings.ToUpper(envconfigDefaultPrefix)+"_PRODUCER_TOPIC_URL", "https://env123@env.cloud:443/kafka/v3/clusters/env-932/topics/env.world")
+	assert.Equal(t, "env123:nixEnv", mustB64Decode(oe.BasicAuth()))
+	oe2, err := NewOptionsFromEnv()
+	assert.NoError(t, err)
+	oe2.ProducerAPISecret = "viaAPISecret" // should not matter if pw is part of the URL
+	assert.Equal(t, "env123:viaAPISecret", mustB64Decode(oe2.BasicAuth()))
+}
+
+func mustParseURL(rawURL string) url.URL {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		panic(err.Error())
+	}
+	return *u
+}
+
+func mustB64Decode(encStr string) string {
+	dStr, err := base64.StdEncoding.DecodeString(encStr)
+	if err != nil {
+		panic(err.Error())
+	}
+	return string(dStr)
 }

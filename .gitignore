@@ -172,3 +172,4 @@ fabric.properties
 .idea/httpRequests
 .sonar-token
 
+.env

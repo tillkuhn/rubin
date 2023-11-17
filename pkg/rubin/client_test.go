@@ -88,6 +88,7 @@ func TestProduceMessageOK(t *testing.T) {
 }
 
 func TestClientFromEnv(t *testing.T) {
+	defer os.Clearenv()
 	_ = os.Setenv(strings.ToUpper(envconfigDefaultPrefix)+"_CLUSTER_ID", "/horst")
 	c, err := NewClientFromEnv()
 	assert.NoError(t, err)

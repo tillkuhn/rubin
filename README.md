@@ -15,6 +15,8 @@ structured event records into an existing Kafka Topic.
 
 It's written in Go, can be used as a CLI standalone binary or as a library, and uses just plain http communication.
 
+Besides support for arbitrary JSON payloads and strings, it can also wrap events in the so called [CloudEvents](https://cloudevents.io/) format, which is "a specification for describing event data in a common way". 
+
 ## Installation and usage
 
 ### Use as standalone CLI
@@ -156,7 +158,7 @@ Resulting event structure (CLI example code)
 Initially I thought of technical names like `kafka-record-prodcer` or `topic-pusher`, but all of them turned out to be pretty boring. [Rick Rubin](https://en.wikipedia.org/wiki/Rick_Rubin) was simply the first name that showed up when I googled for "famous record producers", so I named the tool in his honour, and also in honour of the great Albums he produced in the past decades.
 
 <a href="https://de.wikipedia.org/wiki/Rick_Rubin">
- <img src="https://upload.wikimedia.org/wikipedia/commons/archive/4/43/20210617192624%21RickRubinSept09.jpg" >
+ <img alt='rick-rubin' src="https://upload.wikimedia.org/wikipedia/commons/archive/4/43/20210617192624%21RickRubinSept09.jpg" >
 </a>
   
 *"Rick Rubin in September 2006" by jasontheexploder is licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)*

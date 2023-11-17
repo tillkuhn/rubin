@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httputil"
+	"strings"
 	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
@@ -242,12 +243,14 @@ func transformPayload(data interface{}) (valueType string, valueData interface{}
 func (c *Client) checkDumpRequest(req *http.Request) {
 	if c.options.DumpMessages {
 		reDump, _ := httputil.DumpRequest(req, true)
-		fmt.Printf("Dump HTTP-RecordRequest:\n%s", string(reDump)) // only for debug
+		sanitizedReq := strings.Replace(string(reDump), c.options.BasicAuth(), "************", 1)
+		fmt.Printf("Dump HTTP-RecordRequest:\n%s", sanitizedReq) // only for debug
 	}
 }
 func (c *Client) checkDumpResponse(res *http.Response) {
 	if c.options.DumpMessages {
 		resDump, _ := httputil.DumpResponse(res, true)
+
 		fmt.Printf("\nDump HTTP-RecordResponse:\n%s", string(resDump)) // only for debug
 	}
 }
