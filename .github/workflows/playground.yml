@@ -20,13 +20,13 @@ jobs:
       - name: Test Kafka Messaging
         # GitHub vars: https://dev.to/mihinduranasinghe/working-with-environment-variables-github-actions-part-2-46po
         # https://stackoverflow.com/questions/59073850/github-actions-get-url-of-test-build
+        # GITHUB_REPOSITORY=<github-org>/rubin GITHUB_WORKFLOW=playground (w/o .yml)
         run: |
-          ${{ runner.temp }}/rubin -topic "$KAFKA_TOPIC" -key "$GITHUB_RUN_ID" -ce \
+          ${{ runner.temp }}/rubin -key "${GITHUB_REPOSITORY}/${GITHUB_RUN_ID}" -ce \
           -source "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-          -type "net.timafe.events.ci.published.v1" \
-          -subject "rubin" \
-          -record "{\"action\":\"deploy-api\",\"repo\":\"$GITHUB_REPOSITORY\",\"commit\":\"$GITHUB_SHA\"}" \
-          -header "commit=$GITHUB_SHA" -header "workflow=$GITHUB_WORKFLOW" -header "type=cloudevents"
+          -type "net.timafe.events.ci.published.v1" -subject "$GITHUB_REPOSITORY" \
+          -record "{\"action\":\"$GITHUB_ACTION\",\"version\":\"${GITHUB_REF#refs/*/}\",\"commit\":\"$GITHUB_SHA\"}" \
+          -header "workflow=$GITHUB_WORKFLOW"
         env:
           # shared with HCP Vault
           KAFKA_PRODUCER_TOPIC_URL: ${{ secrets.KAFKA_PRODUCER_TOPIC_URL }}
