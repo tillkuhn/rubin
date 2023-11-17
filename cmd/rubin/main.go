@@ -91,9 +91,6 @@ func run() error {
 		showHelp()
 		return nil
 	}
-	if err := validateArgs(topic, record); err != nil {
-		return err
-	}
 	headerMap := make(map[string]string)
 	minParts := 2 // golangci treats 2 as a magic number
 	for _, h := range headers {
@@ -109,6 +106,9 @@ func run() error {
 	client, err := rubin.NewClientFromEnv()
 	if err != nil {
 		return err
+	}
+	if strings.TrimSpace(*record) == "" {
+		return errors.Wrap(errClient, "message record must not be empty")
 	}
 	client.LogLevel(*verbosity)
 
@@ -136,16 +136,4 @@ func showHelp() {
 	fmt.Println("\nIn addition, the following CLI arguments are supported")
 	flag.PrintDefaults()
 	fmt.Println()
-}
-
-func validateArgs(topic *string, record *string) error {
-	// Validate mandatory args
-	if strings.TrimSpace(*topic) == "" {
-		return errors.Wrap(errClient, "kafka topic must not be empty")
-	}
-	// Validate mandatory args
-	if strings.TrimSpace(*record) == "" {
-		return errors.Wrap(errClient, "message record must not be empty")
-	}
-	return nil
 }
