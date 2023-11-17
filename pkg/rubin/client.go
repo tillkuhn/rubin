@@ -103,8 +103,7 @@ func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResp
 		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
 	}()
 	keyData := c.messageKeyData(request.Key)
-	basicAuth := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", c.options.ProducerAPIKey, c.options.ProducerAPISecret)))
-	url := fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", c.options.RestEndpoint, c.options.ClusterID, request.Topic)
+	url := c.options.RecordEndpoint(request.Topic)
 
 	var prodResp RecordResponse
 	if request.AsCloudEvent {
@@ -150,7 +149,7 @@ func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResp
 	payloadJSON, _ := json.Marshal(payload)
 	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(payloadJSON))
 	req.Header.Set("Content-Type", "application/json") // don't add ;charset=UTF8 or server will complain
-	req.Header.Add("Authorization", "Basic "+basicAuth)
+	req.Header.Add("Authorization", "Basic "+c.options.BasicAuth())
 
 	c.logger.Infow("Push request", "url", url,
 		"type", fmt.Sprintf("%T", request.Data), "ce", request.AsCloudEvent,

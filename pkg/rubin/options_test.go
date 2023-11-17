@@ -41,3 +41,34 @@ func TestOptionsError(t *testing.T) {
 	_, err := NewOptionsFromEnv()
 	assert.ErrorContains(t, err, "invalid duration") // envconfig.Process: strconv.ParseInt: ...
 }
+
+func TestBasicAuth(t *testing.T) {
+	o := Options{
+		ProducerAPIKey:    "user",
+		ProducerAPISecret: "password",
+	}
+	assert.Equal(t, "dXNlcjpwYXNzd29yZA==", o.BasicAuth())
+
+	// test with use encoded in url
+	o.TopicURL = "https://friendOfSomeUser@some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world"
+	assert.Equal(t, "ZnJpZW5kT2ZTb21lVXNlcjpwYXNzd29yZA==", o.BasicAuth())
+}
+
+func TestEndpoint(t *testing.T) {
+	o := Options{
+		RestEndpoint: "https://some.cloud:443",
+		ClusterID:    "lka-123",
+	}
+	// request specific topic, cluster configured with endpoint and cluster id
+	a := o.RecordEndpoint("hello.world")
+	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/lka-123/topics/hello.world/records", a)
+
+	// default topic configured with topic URL, no request specific topic
+	o.TopicURL = "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world"
+	a2 := o.RecordEndpoint("")
+	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/ciao.world/records", a2)
+
+	// default topic configured with topic URL, with request specific topic (topic name should be overwritten)
+	a3 := o.RecordEndpoint("small.world")
+	assert.Equal(t, "https://some.cloud:443/kafka/v3/clusters/abc-932/topics/small.world/records", a3)
+}

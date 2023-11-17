@@ -1,7 +1,10 @@
 package rubin
 
 import (
+	b64 "encoding/base64"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -13,6 +16,7 @@ const (
 
 // Options keeps the settings to set up client connection.
 type Options struct {
+	TopicURL string `yaml:"topic_url" default:"" required:"false" desc:"Topic URL (alternative to RestEndpoint, ClusterID etc.)"  split_words:"true"`
 	// RestEndpoint for kafka rest proxy api
 	RestEndpoint string `yaml:"rest_endpoint" default:"" required:"false" desc:"Kafka REST Proxy Endpoint"  split_words:"true"`
 	// ClusterID of kafka cluster (which becomes part of the URL)
@@ -41,4 +45,29 @@ func NewOptionsFromEnvWithPrefix(prefix string) (*Options, error) {
 // String returns a String representation of the object (but hides sensitive information)
 func (o Options) String() string {
 	return fmt.Sprintf("%s/%s hasKey=%v hasSecret=%v", o.RestEndpoint, o.ClusterID, len(o.ProducerAPIKey) > 0, len(o.ProducerAPISecret) > 0)
+}
+
+// BasicAuth returns the base64 encoded authentication string to be used as Auth Header for REST Proxy Http request
+func (o Options) BasicAuth() string {
+	if o.TopicURL != "" {
+		u, err := url.Parse(o.TopicURL)
+		if err == nil && u.User != nil {
+			o.ProducerAPIKey = u.User.Username() // set resp. overwrite
+		}
+	}
+	return b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", o.ProducerAPIKey, o.ProducerAPISecret)))
+}
+
+// RecordEndpoint returns the REST API endpoint for producing messages, basic on endpoint, cluster and topic
+// If TopicURL is specified, it takes precedence
+func (o Options) RecordEndpoint(topic string) string {
+	switch {
+	case o.TopicURL == "":
+		return fmt.Sprintf("%s/kafka/v3/clusters/%s/topics/%s/records", o.RestEndpoint, o.ClusterID, topic)
+	case topic != "":
+		urlParts := strings.Split(o.TopicURL, "/") // remove default topic from url
+		return fmt.Sprintf("%s/%s/%s", strings.Join(urlParts[:len(urlParts)-1], "/"), topic, "records")
+	default:
+		return fmt.Sprintf("%s/%s", o.TopicURL, "records")
+	}
 }
