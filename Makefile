@@ -125,7 +125,7 @@ run: fmt ## Run the app with JSON String Message
 	-source "rubin/makefile" -subject "my.subject" -header="day=$(shell date +%A)" -header "header2=yeah" -ce
 
 run-polly: fmt ## Run the experimental polly client
-	KAFKA_CONSUMER_MAX_RECEIVE=10 go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
+	LOG_LEVEL=debug KAFKA_CONSUMER_MAX_RECEIVE=10 go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
 	./cmd/polly/main.go -env-file $(RUBIN_ENV_FILE) -topic "ci.events"
 
 run-help: fmt ## Run the app and display app helm

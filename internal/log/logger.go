@@ -2,9 +2,10 @@ package log
 
 import (
 	"fmt"
-	"github.com/mattn/go-isatty"
 	"os"
 	"time"
+
+	"github.com/mattn/go-isatty"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -84,4 +85,12 @@ func NewAtLevel(levelStr string) *zap.SugaredLogger {
 	logger := zap.Must(logConf.Build())
 
 	return logger.Sugar()
+}
+
+// SyncSilently make sure any buffered log entries are flushed when Produce returns
+// use with defer at the beginning of your method as follows:
+//
+//	defer log.SyncSilently(&c.logger)
+func SyncSilently(l *zap.SugaredLogger) {
+	_ = l.Sync()
 }

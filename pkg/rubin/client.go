@@ -37,7 +37,7 @@ var errClientResponse = errors.New("kafka client response error")
 type Client struct {
 	options    *Options
 	httpClient *http.Client
-	logger     zap.SugaredLogger
+	logger     *zap.SugaredLogger
 }
 
 // NewClient returns a new Rubin Client for http interaction
@@ -53,7 +53,7 @@ func NewClient(options *Options) *Client {
 	return &Client{
 		options:    options,
 		httpClient: &http.Client{Timeout: options.HTTPTimeout},
-		logger:     *logger,
+		logger:     logger,
 	}
 }
 
@@ -71,7 +71,7 @@ func NewClientFromEnv() (*Client, error) {
 
 // LogLevel allows dynamic configuration of LogLevel after the client has been initialized
 func (c *Client) LogLevel(levelStr string) {
-	c.logger = *log.NewAtLevel(levelStr)
+	c.logger = log.NewAtLevel(levelStr)
 }
 
 // String representation of client
@@ -100,9 +100,7 @@ type RecordResponse struct {
 
 // Produce produces a Kafka Record into the given Topic
 func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResponse, error) {
-	defer func() {
-		_ = c.logger.Sync() // make sure any buffered log entries are flushed when Produce returns
-	}()
+	defer log.SyncSilently(c.logger)
 	keyData := c.messageKeyData(request.Key)
 	url := c.options.RecordEndpoint(request.Topic)
 

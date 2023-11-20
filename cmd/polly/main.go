@@ -65,6 +65,7 @@ func run() error {
 	defer func() {
 		stop()
 		p.WaitForClose()
+		_ = logger.Sync()
 	}()
 
 	handler := polly.DumpMessage

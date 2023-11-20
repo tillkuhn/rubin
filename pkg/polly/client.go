@@ -86,6 +86,7 @@ func NewClientFromEnv() (*Client, error) {
 // and this nice tutorial https://www.sohamkamani.com/golang/working-with-kafka/
 // doneChan chan<- struct{}
 func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler HandleMessageFunc) error {
+	log.SyncSilently(c.logger)
 	c.applyDefaults(&rc)
 	topics := rc.GroupTopics
 	c.logger.Infof("Let's consume some yummy Kafka Messages on topic=%s groupID=%s", topics, c.options.ConsumerGroupID)
