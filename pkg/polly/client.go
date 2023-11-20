@@ -57,7 +57,7 @@ type Client struct {
 }
 
 func NewClient(options *Options) *Client {
-	logger := log.NewAtLevel("debug") // log.With().Str("logger", "kafka-consumer🐛").Logger()
+	logger := log.New() // NewAtLevel("debug")
 	c := &Client{
 		options: options,
 		logger:  logger,
@@ -69,7 +69,7 @@ func NewClient(options *Options) *Client {
 	return c
 }
 
-// NewClientFromEnv returns a properly configured and ready-to-use Client
+// NewClientFromEnv delegated to NewClient amd returns a properly configured and ready-to-use Client
 // that invoked the callback function for every received messages using the default KafkaConsumerTopic
 // Spec: See https://github.com/segmentio/kafka-go#reader-
 func NewClientFromEnv() (*Client, error) {

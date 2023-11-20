@@ -11,9 +11,8 @@ import (
 
 const defaultLevel = zapcore.InfoLevel
 
-// New returns a sugared zap Logger configured for the default level
-// which is either determined by the environment variable LOG_LEVEL,
-// or defaults to 'info'
+// New delegated to NewAzLevel and returns a sugared zap Logger configured for the default level
+// which is either determined by the environment variable LOG_LEVEL, or defaults to 'info'
 func New() *zap.SugaredLogger {
 	ll := os.Getenv("LOG_LEVEL")
 	if ll != "" {
@@ -62,6 +61,9 @@ func NewAtLevel(levelStr string) *zap.SugaredLogger {
 	// Configure date format https://github.com/uber-go/zap/issues/485#issuecomment-834021392
 	// time.RFC3339 or time.RubyDate or "2006-01-02 15:04:05" or even freaking time.Kitchen
 	logConf.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.Kitchen)
+
+	// Configure Color, see https://github.com/uber-go/zap/issues/648#issuecomment-492481968
+	logConf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
 	// logConf.Level = zap.NewAtomicLevelAt(logLevel)
 

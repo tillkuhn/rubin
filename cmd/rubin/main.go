@@ -81,7 +81,7 @@ func run() error {
 	// nice: we can also use flags for maps https://www.emmanuelgautier.com/blog/string-map-command-argument-go
 	flag.Parse()
 	if *envFile != "" {
-		fmt.Printf("Loading environment from custom location %s", *envFile)
+		fmt.Printf("Loading environment from custom location '%s'\n", *envFile)
 		err := godotenv.Load(*envFile)
 		if err != nil {
 			return errors.Wrap(err, "Error Loading environment vars from "+*envFile)

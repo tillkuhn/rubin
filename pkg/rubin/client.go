@@ -43,8 +43,8 @@ type Client struct {
 // NewClient returns a new Rubin Client for http interaction
 func NewClient(options *Options) *Client {
 	logger := log.NewAtLevel(options.LogLevel)
-	logger.Infow("Kafka REST Proxy Client configured",
-		"endpoint", options.RestEndpoint, "useSecret", len(options.ProducerAPISecret) > 0)
+	logger.Infof("Kafka REST Proxy Client configured with endpoint=%s secret=%v",
+		options.RestEndpoint, len(options.ProducerAPISecret) > 0)
 	if options.HTTPTimeout.Seconds() < 1 {
 		logger.Debugf("Timeout duration is zero or too low, using default %v", defaultTimeout)
 		options.HTTPTimeout = defaultTimeout
@@ -152,9 +152,8 @@ func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResp
 	req.Header.Set("Content-Type", "application/json") // don't add ;charset=UTF8 or server will complain
 	req.Header.Add("Authorization", "Basic "+c.options.BasicAuth())
 
-	c.logger.Infow("Push request", "url", url,
-		"type", fmt.Sprintf("%T", request.Data), "ce", request.AsCloudEvent,
-		"len", len(payloadJSON), "headers", len(apiHeaders),
+	c.logger.Infof("TopicURL=%s type=%s ce=%v len=%d hd=%d", url,
+		fmt.Sprintf("%T", request.Data), request.AsCloudEvent, len(payloadJSON), len(apiHeaders),
 	)
 	c.checkDumpRequest(req)
 	res, err := c.httpClient.Do(req)
