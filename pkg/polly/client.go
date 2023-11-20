@@ -122,6 +122,8 @@ func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler Han
 	return nil
 }
 
+// applyDefaults updates the kafka.ReaderConfig that is handed over to the poll request with reasonable
+// default values based on client options and context
 func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 	dialer := &kafka.Dialer{
 		SASLMechanism: plain.Mechanism{
@@ -133,7 +135,10 @@ func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 	}
 
 	rc.Brokers = []string{c.options.BootstrapServers}
-	rc.GroupID = c.options.ConsumerGroupID
+	if rc.GroupID == "" {
+		rc.GroupID = c.options.ConsumerGroupID // default options
+	}
+
 	// Topic=   pr.Topic
 	// rc.GroupTopics= []string{pr.Topic} // Can listen to multiple topics
 	// kafka polls the cluster to check if there is any new data on the topic for the my-group kafka ID,

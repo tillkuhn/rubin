@@ -73,8 +73,13 @@ func run() error {
 		handler = DumpCloudEvent
 	}
 	errChan := make(chan error, 1)
+
 	go func() {
-		errChan <- p.Poll(ctx, kafka.ReaderConfig{Topic: *topic}, handler)
+		errChan <- p.Poll(ctx, kafka.ReaderConfig{
+			Topic: *topic,
+			// groupIDSuffix, _ := os.Hostname()
+			// GroupID: *topic + "." + strings.ToLower(groupIDSuffix),
+		}, handler)
 	}()
 
 	select {
