@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/mattn/go-isatty"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -62,8 +64,11 @@ func NewAtLevel(levelStr string) *zap.SugaredLogger {
 	// time.RFC3339 or time.RubyDate or "2006-01-02 15:04:05" or even freaking time.Kitchen
 	logConf.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.Kitchen)
 
-	// Configure Color, see https://github.com/uber-go/zap/issues/648#issuecomment-492481968
-	logConf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	// Configure Color if running in a terminal, see https://github.com/uber-go/zap/issues/648#issuecomment-492481968
+	// Thanks to: https://github.com/mattn/go-isatty
+	if isatty.IsTerminal(os.Stdout.Fd()) && isatty.IsTerminal(os.Stderr.Fd()) {
+		logConf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	}
 
 	// logConf.Level = zap.NewAtomicLevelAt(logLevel)
 
