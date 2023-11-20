@@ -2,10 +2,9 @@ package log
 
 import (
 	"fmt"
+	"github.com/mattn/go-isatty"
 	"os"
 	"time"
-
-	"github.com/mattn/go-isatty"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -47,6 +46,8 @@ func NewAtLevel(levelStr string) *zap.SugaredLogger {
 	//   Prints timestamp in ISO8601 format with milliseconds
 	//
 	// logConf := zap.NewDevelopmentConfig() // with console encoder default debug
+	// logConf := zap.NewProductionConfig() // with console encoder default debug
+
 	logConf := zap.Config{
 		Level: zap.NewAtomicLevelAt(logLevel),
 		// Development:      true,
@@ -60,14 +61,15 @@ func NewAtLevel(levelStr string) *zap.SugaredLogger {
 		ErrorOutputPaths:  []string{"stderr"},
 	}
 
-	// Configure date format https://github.com/uber-go/zap/issues/485#issuecomment-834021392
-	// time.RFC3339 or time.RubyDate or "2006-01-02 15:04:05" or even freaking time.Kitchen
-	logConf.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.Kitchen)
-
 	// Configure Color if running in a terminal, see https://github.com/uber-go/zap/issues/648#issuecomment-492481968
 	// Thanks to: https://github.com/mattn/go-isatty
 	if isatty.IsTerminal(os.Stdout.Fd()) && isatty.IsTerminal(os.Stderr.Fd()) {
 		logConf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		// Configure date format https://github.com/uber-go/zap/issues/485#issuecomment-834021392
+		// time.RFC3339 or time.RubyDate or "2006-01-02 15:04:05" or even freaking time.Kitchen
+		logConf.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.Kitchen)
+	} else {
+		logConf.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	}
 
 	// logConf.Level = zap.NewAtomicLevelAt(logLevel)
