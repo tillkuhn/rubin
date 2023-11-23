@@ -28,7 +28,7 @@ var (
 	date         = "now"
 	commit       = ""
 	builtBy      = "go"
-	timeoutAfter = 15 * time.Second
+	timeoutAfter = 30 * time.Second
 )
 
 func main() {
@@ -72,18 +72,14 @@ func run() error {
 	if *ce {
 		handler = DumpCloudEvent
 	}
-	errChan := make(chan error, 1)
 
+	errChan := make(chan error, 1)
 	go func() {
-		errChan <- p.Poll(ctx, kafka.ReaderConfig{
-			Topic: *topic,
-			// groupIDSuffix, _ := os.Hostname()
-			// GroupID: *topic + "." + strings.ToLower(groupIDSuffix),
-		}, handler)
+		errChan <- p.Poll(ctx, kafka.ReaderConfig{Topic: *topic}, handler)
 	}()
 
 	select {
-	case err := <-errChan:
+	case err = <-errChan:
 		logger.Infof("CLI: Got error from Kafka Consumer: %v\n", err)
 		return err
 	case <-time.After(timeoutAfter):

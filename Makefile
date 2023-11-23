@@ -103,6 +103,16 @@ ci: lint-reports test-reports ## Executes lint and test and generates reports
 update: ## Update all go dependencies
 	@go get -u all
 
+.PHONY: help
+help: ## Shows the help
+	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
+	@echo ''
+	@echo 'Available targets are:'
+	@echo ''
+	@grep -E '^[ a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+        awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' | sort
+	@echo ''
+
 .PHONY: patch
 patch: ## Create Patch Release
 	@if hash semtag 2>/dev/null; then \
@@ -114,16 +124,6 @@ minor: ## Create Minor Release
 	@if hash semtag 2>/dev/null; then \
 		semtag final -s minor; \
   	else echo "This target requires semtag, download from https://github.com/nico2sh/semtag"; fi
-
-.PHONY: help
-help: ## Shows the help
-	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
-	@echo ''
-	@echo 'Available targets are:'
-	@echo ''
-	@grep -E '^[ a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-        awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' | sort
-	@echo ''
 
 run: fmt ## Run the app with JSON String Message
 	KAFKA_DUMP_MESSAGES=false go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \

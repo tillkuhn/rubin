@@ -25,7 +25,7 @@ const (
 	defaultDialTimeout      = 5 * time.Second
 	defaultCloseWaitTimeout = 10 * time.Second
 	minConsumeBytes         = 10
-	maxConsumeBytes         = 10e6 // 10 MB
+	maxConsumeBytes         = 10e6 // 10 MB should be enough for everyone :-)
 	// defaultRetentionTime optionally sets the length of time the consumer group will be saved by the broker, Default 24h
 	defaultRetentionTime = 24 * time.Hour
 )
@@ -61,7 +61,6 @@ func NewClient(options *Options) *Client {
 	c := &Client{
 		options: options,
 		logger:  logger,
-		// errChan:      make(chan error, 10),
 	}
 	c.readerFactory = defaultMessageReader
 	logger.Debugf("New Client initialized %s@%s consumerGroupId=%s",
@@ -89,16 +88,19 @@ func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler Han
 	log.SyncSilently(c.logger)
 	c.applyDefaults(&rc)
 	topics := rc.GroupTopics
-	c.logger.Infof("Let's consume some yummy Kafka Messages on topic=%s groupID=%s", topics, c.options.ConsumerGroupID)
+	if len(topics) < 1 {
+		topics = []string{rc.Topic} // either must be set, topics is only used for logging
+	}
+	c.logger.Infof("Let's consume some yummy Kafka Messages on topic(s)=%s groupID=%s", topics, c.options.ConsumerGroupID)
 
 	r := c.readerFactory(rc)
 	defer func() {
-		c.logger.Debugf("Post-consume: closing reader stream for topic %s", topics)
+		c.logger.Debugf("Post-consume: closing reader stream for topic(s)=%s", topics)
 		if err := r.Close(); err != nil {
 			c.logger.Warnf("Error closing reader stream: %v", err)
 		}
 		c.wg.Done() // decrement, WaitForClose() will wait for this group as there may be multiple consumers
-		c.logger.Debugf("Post-consume: %s ready for shutdown", topics)
+		c.logger.Debugf("Post-consume: reader for topic(s)=%s ready for shutdown", topics)
 	}()
 	c.wg.Add(1) // add to wait group to ensure graceful shutdown
 
@@ -109,11 +111,17 @@ func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler Han
 		// blocks until a message becomes available, or an error occurs.
 		msg, err := r.ReadMessage(ctx)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				c.logger.Debugf("Reader has been closed (ctx err: %v)", ctx.Err())
-			} else {
-				c.logger.Errorf("Error on message read: %v", err)
-				return err // really?, or better use c.errChan <- err
+			// handle "errors" as a result of closed context or reader which should be considered expected
+			// and only logged on debug level. other error is considered serious and returned
+			// Note that it may take some time, since the Reader tries 3x times with wait interval first
+			switch {
+			case errors.Is(err, io.EOF):
+				c.logger.Debugf("Reader-loop: Reader has been closed (ctx err: %v)", ctx.Err())
+			case errors.Is(err, context.Canceled):
+				c.logger.Debug("Reader-loop: Context was canceled")
+			default:
+				c.logger.Errorf("Reader-loop: Error on message read: %v", err)
+				return err
 			}
 			break
 		}
@@ -134,9 +142,12 @@ func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 		TLS:     &tls.Config{MinVersion: tls.VersionTLS12},
 	}
 
+	// For confluent, there's usually only a single server, for CloudKarafka we have three
 	rc.Brokers = []string{c.options.BootstrapServers}
+
+	// GroupID is important for ACLs, can be overwritten for request but default is derived from client options
 	if rc.GroupID == "" {
-		rc.GroupID = c.options.ConsumerGroupID // default options
+		rc.GroupID = c.options.ConsumerGroupID
 	}
 
 	// rc.GroupTopics= []string{pr.Topic} // Can listen to multiple topics
@@ -153,7 +164,8 @@ func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 	rc.StartOffset = c.options.StartOffset() // see godoc for details
 	// flushes commits to Kafka every  x seconds, default = 0 (means sync)
 	rc.CommitInterval = 1 * time.Second
-	// If != nil, logger is  used to report internal changes within the
+
+	// If Logger != nil, it is used to report internal changes within the
 	rc.Logger = LoggerWrapper{delegate: c.logger}
 	rc.ErrorLogger = ErrorLoggerWrapper{delegate: c.logger}
 }
