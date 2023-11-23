@@ -1,3 +1,8 @@
+# Makefile for Go Projects based on https://github.com/SchwarzIT/go-template + https://github.com/ksoclabs/kbom
+
+## difference := and = https://stackoverflow.com/a/65850656/4292075
+## XX = $(shell date) # date is executed every time XX is used, ':=" is executed only once, and ?= only if unset
+MODULE_NAME:=$(go list -m)
 SHELL=/bin/bash -e -o pipefail
 PWD = $(shell pwd)
 
@@ -6,15 +11,16 @@ GOLANGCI_VERSION = 1.55.1
 DOCKER_REPO = rubin
 DOCKER_TAG = latest
 
-# defaults for run targets, to overwrite use
-# TOPIC="something.else" make run
-TOPIC ?= "public.hello"
+.DEFAULT_GOAL = help
 
-# default location of environment file (if not already set, e.g. in .bashrc)
+# Customization for this particular project
+
+## default target topic for run targets, to overwrite use
+## TOPIC="something.else" make run (...)
+TOPIC ?= "public.hello"
+## default location of environment file (if not already set, e.g. in .bashrc)
 RUBIN_ENV_FILE ?= ".env"  #  "~/.env" for home dir is supported
 
-# customization
-.DEFAULT_GOAL = help
 
 all: git-hooks  tidy ## Initializes all tools
 
@@ -67,10 +73,10 @@ test: ## Runs all tests  (with colorized output support if gotest is installed)
   	else go test -v -coverpkg=./... -coverprofile=coverage.out ./...; fi
 
 .PHONY: test-int
-test-int: ## Run integration test with tag //go:build integration
+test-int: ## Run integration tests tagged as '//go:build integration'
 	go test --tags=integration ./...
 
-test-all: test test-int lint ## Run unit + integration tests and ci-lint
+test-all: test test-int lint ## Run unit and integration tests followed by lint
 
 coverage: out/report.json ## Displays coverage per func on cli
 	go tool cover -func=out/cover.out
@@ -86,7 +92,7 @@ test-reports: out/report.json
 out/report.json: out
 	@go test -count 1 ./... -coverprofile=out/cover.out --json | tee "$(@)"
 
-clean: ## Cleans up everything
+clean: ## Cleans up everything (bin and out folders)
 	@rm -rf bin out
 
 docker: ## Builds docker image
@@ -122,7 +128,7 @@ help: ## Shows the help
 run: fmt ## Run the app with JSON String Message
 	KAFKA_DUMP_MESSAGES=false go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
 	./cmd/rubin/main.go -env-file $(RUBIN_ENV_FILE) -v debug -topic $(TOPIC) -record '{"message":"Hello Franz!"}' \
-	-source "rubin/makefile" -subject "my.subject" -header="day=$(shell date +%A)" -header "header2=yeah" -ce
+	-source "urn:rubin:makefile" -subject "my.subject" -header="day=$(shell date +%A)" -header "header2=yeah" -ce
 
 run-polly: fmt ## Run the experimental polly client
 	LOG_LEVEL=debug KAFKA_CONSUMER_MAX_RECEIVE=10 go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \

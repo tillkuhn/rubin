@@ -26,8 +26,8 @@ const (
 	defaultCloseWaitTimeout = 10 * time.Second
 	minConsumeBytes         = 10
 	maxConsumeBytes         = 10e6 // 10 MB
-	// retentionTime optionally sets the length of time the consumer group will be saved by the broker, Default 24h
-	retentionTime = 10 * time.Minute
+	// defaultRetentionTime optionally sets the length of time the consumer group will be saved by the broker, Default 24h
+	defaultRetentionTime = 24 * time.Hour
 )
 
 // errInvalidContentType used as static error for Kafka messages with unexpected or no content-type header
@@ -139,17 +139,21 @@ func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 		rc.GroupID = c.options.ConsumerGroupID // default options
 	}
 
-	// Topic=   pr.Topic
 	// rc.GroupTopics= []string{pr.Topic} // Can listen to multiple topics
 	// kafka polls the cluster to check if there is any new data on the topic for the my-group kafka ID,
 	// the cluster will only respond if there are at least 10 new bytes of information to send.
 	rc.MinBytes = minConsumeBytes
 	rc.MaxBytes = maxConsumeBytes
 	rc.Dialer = dialer
-	// RetentionTime optionally sets the length of time the consumer group will be saved
-	rc.RetentionTime = retentionTime
+	if rc.RetentionTime == 0 {
+		// RetentionTime optionally sets the length of time the consumer group will be saved by broker,
+		// kafka-go default is 24h
+		rc.RetentionTime = defaultRetentionTime
+	}
 	rc.StartOffset = c.options.StartOffset() // see godoc for details
-	rc.CommitInterval = 1 * time.Second      // flushes commits to Kafka every  x seconds
+	// flushes commits to Kafka every  x seconds, default = 0 (means sync)
+	rc.CommitInterval = 1 * time.Second
+	// If != nil, logger is  used to report internal changes within the
 	rc.Logger = LoggerWrapper{delegate: c.logger}
 	rc.ErrorLogger = ErrorLoggerWrapper{delegate: c.logger}
 }

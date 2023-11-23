@@ -87,7 +87,7 @@ func run() error {
 		logger.Infof("CLI: Got error from Kafka Consumer: %v\n", err)
 		return err
 	case <-time.After(timeoutAfter):
-		logger.Infof("CLI: Deadline exceededafter %v\n", timeoutAfter)
+		logger.Infof("CLI: Deadline exceeded after %v\n", timeoutAfter)
 	case <-ctx.Done():
 		logger.Infof("CLI: Context Notified on '%v', waiting for polly subsytem shutdown\n", ctx.Err())
 	}
