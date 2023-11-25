@@ -28,6 +28,7 @@ import (
 // - Inspiration for types: https://github.com/googleapis/google-cloudevents
 // - Google API JSON Examples: https://github.com/googleapis/google-cloudevents/tree/main/examples/structured
 // - CloudEvents@Dapr runtime: https://docs.dapr.io/developing-applications/building-blocks/pubsub/pubsub-cloudevents/
+// - CloudEvents@Quarkus: https://quarkus.io/blog/kafka-cloud-events/
 
 func NewCloudEvent(sourceURI string, eventType string, data interface{}) (cloudevents.Event, error) {
 	event := cloudevents.NewEvent()

@@ -26,19 +26,20 @@ builds:
     # https://github.com/goreleaser/goreleaser/issues/36
     # goarm: ["6", "7"]
 
-    # Custom ldflags.
+    # Custom ldflags (linker flags)
     #
-    # Default: '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'
+    # default according to go-releaser source-code (internal/builders/golang/build.go):
+    # build.Ldflags = []string{"-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser"
     # see also https://goreleaser.com/cookbooks/using-main.version/
     #
     #ldflags:
-      #- -s -w -X github.com/tillkuhn/rubin/cmd.Version={{.Env.RUBIN_VERSION}} -X github.com/tillkuhn/rubin/cmd.Commit={{.Env.RUBIN_COMMIT}} -X github.com/tillkuhn/rubin/cmd.BuildDate={{.Env.rubin_BUILD_DATE}}
-     # - -s -w
-
+    # example for classes != main:
+    # -s -w -X github.com/tillkuhn/rubin/cmd.Version={{.Env.RUBIN_VERSION}} -X github.com/tillkuhn/rubin/cmd.Commit={{.Env.RUBIN_COMMIT}} -X github.com/tillkuhn/rubin/cmd.BuildDate={{.Env.rubin_BUILD_DATE}}
+    
     # Path to main.go file or main package.
     # Notice: when used with `gomod.proxy`, this must be a package.
     #
-    # Default is `.`.
+    # Default is `.`
     main: ./cmd/rubin
 
 archives:
