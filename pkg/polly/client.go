@@ -127,7 +127,7 @@ func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler Han
 			case errors.Is(err, context.DeadlineExceeded):
 				c.logger.Debug("Reader-loop: Context deadline exceeded, no problem")
 			default:
-				c.logger.Errorf("Reader-loop: Error on message read: %v", err)
+				c.logger.Errorf("Reader-loop: Unexpected error on message read: %v", err)
 				return err
 			}
 			break
