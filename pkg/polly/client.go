@@ -91,7 +91,7 @@ func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler Han
 	if len(topics) < 1 {
 		topics = []string{rc.Topic} // either must be set, topics is only used for logging
 	}
-	c.logger.Infof("Let's consume some yummy Kafka Messages on topic(s)=%s groupID=%s", topics, c.options.ConsumerGroupID)
+	c.logger.Infof("Let's consume some yummy Kafka Messages on topic(s)=%s groupID=%s brokers=%v", topics, rc.GroupID, rc.Brokers)
 
 	r := c.readerFactory(rc)
 	defer func() {
