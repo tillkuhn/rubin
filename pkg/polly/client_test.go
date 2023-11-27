@@ -78,14 +78,17 @@ func testClient(t *testing.T) (*Client, error) {
 	// cf := func(ctx context.Context, msg kafka.Message) {}
 	prefix := strings.ToUpper(envconfigDefaultPrefix)
 	_ = os.Setenv(prefix+"_CONSUMER_TOPIC", "hase")
-	_ = os.Setenv(prefix+"_KAFKA_CONSUMER_START_LAST", "true")
+	_ = os.Setenv(prefix+"_CONSUMER_START_LAST", "true")
 	defer func() {
-		_ = os.Unsetenv(prefix + "_KAFKA_CONSUMER_START_LAST")
+		_ = os.Unsetenv(prefix + "_CONSUMER_START_LAST")
 		_ = os.Unsetenv(prefix + "_CONSUMER_TOPIC")
 	}()
 
 	k, err := NewClientFromEnv()
 	assert.NoError(t, err)
+	assert.True(t, k.options.ConsumerStartLast)
+	assert.Equal(t, "localhost:9092", k.options.BootstrapServers)
+	assert.Contains(t, k.String(), "localhost:9092")
 	k.readerFactory = mockMessageReader
 	k.options.ConsumerMaxReceive = 2 // after max 2 messages, consumer will exit
 	return k, err

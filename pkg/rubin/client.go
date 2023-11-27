@@ -74,7 +74,7 @@ func (c *Client) LogLevel(levelStr string) {
 	c.logger = log.NewAtLevel(levelStr)
 }
 
-// String representation of client
+// String representation of the client instance
 func (c *Client) String() string {
 	return fmt.Sprintf("rubin-http-client@%s", c.options.String())
 }

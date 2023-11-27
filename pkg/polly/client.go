@@ -56,6 +56,11 @@ type Client struct {
 	wg            sync.WaitGroup
 }
 
+// String representation of the client instance
+func (c *Client) String() string {
+	return fmt.Sprintf("rubin-polly@%s", c.options.String())
+}
+
 func NewClient(options *Options) *Client {
 	logger := log.New() // NewAtLevel("debug")
 	c := &Client{
@@ -118,7 +123,9 @@ func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler Han
 			case errors.Is(err, io.EOF):
 				c.logger.Debugf("Reader-loop: Reader has been closed (ctx err: %v)", ctx.Err())
 			case errors.Is(err, context.Canceled):
-				c.logger.Debug("Reader-loop: Context was canceled")
+				c.logger.Debug("Reader-loop: Context was canceled, no problem")
+			case errors.Is(err, context.DeadlineExceeded):
+				c.logger.Debug("Reader-loop: Context deadline exceeded, no problem")
 			default:
 				c.logger.Errorf("Reader-loop: Error on message read: %v", err)
 				return err

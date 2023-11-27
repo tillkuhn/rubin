@@ -15,7 +15,7 @@ func TestOptions(t *testing.T) {
 	defer os.Clearenv()
 	var err error
 	o := &Options{
-		ProducerClientID:   "",
+		// ProducerClientID:   "",
 		ConsumerAPIKey:     "",
 		ConsumerAPISecret:  "",
 		ConsumerGroupID:    "",
@@ -27,10 +27,14 @@ func TestOptions(t *testing.T) {
 	assert.Equal(t, kafka.FirstOffset, o.StartOffset())
 	o.ConsumerStartLast = true
 	assert.Equal(t, kafka.LastOffset, o.StartOffset())
+
 	_ = os.Setenv(prefix+"_CONSUMER_API_KEY", "key-west")
+	_ = os.Setenv(prefix+"_BOOTSTRAP_SERVERS", "boot.strap.io")
 	o, err = NewOptionsFromEnv()
 	assert.NoError(t, err)
 	assert.Equal(t, "key-west", o.ConsumerAPIKey)
+	assert.Equal(t, "boot.strap.io", o.BootstrapServers)
+	assert.Contains(t, o.String(), "boot.strap.io")
 }
 
 func TestOptionsError(t *testing.T) {
