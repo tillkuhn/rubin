@@ -60,7 +60,7 @@ jobs:
 
       - name: Build docker image
         id: build # so we can reference this step as ${{ steps.build.outputs.digest }} in export step
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           platforms:  ${{ matrix.platform }}
           context: .
