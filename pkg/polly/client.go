@@ -27,7 +27,8 @@ const (
 	minConsumeBytes         = 10
 	maxConsumeBytes         = 10e6 // 10 MB should be enough for everyone :-)
 	// defaultRetentionTime optionally sets the length of time the consumer group will be saved by the broker, Default 24h
-	defaultRetentionTime = 24 * time.Hour
+	// -1 tells the broker to use its configured value (https://github.com/segmentio/kafka-go/pull/406/files)
+	defaultRetentionTime = 24 * 7 * time.Hour
 )
 
 // errInvalidContentType used as static error for Kafka messages with unexpected or no content-type header
@@ -165,7 +166,8 @@ func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 	rc.Dialer = dialer
 	if rc.RetentionTime == 0 {
 		// RetentionTime optionally sets the length of time the consumer group will be saved by broker,
-		// kafka-go default is 24h
+		// kafka-go see https://github.com/segmentio/kafka-go/issues/393 (used to be 24h)
+		//
 		rc.RetentionTime = defaultRetentionTime
 	}
 	rc.StartOffset = c.options.StartOffset() // see godoc for details
