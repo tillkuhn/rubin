@@ -39,6 +39,7 @@ func NewAtLevel(levelStr string) *zap.SugaredLogger {
 	// Use logger preset NewDevelopmentConfig or NewProductionConfig() (with json encoder default info)
 	// see https://blog.sandipb.net/2018/05/02/using-zap-simple-use-cases/
 	// Advanced: https://github.com/sandipb/zap-examples/tree/master/src/customlogger#using-the-zap-config-struct-to-create-a-logger
+	// Even More Inspiration: https://betterstack.com/community/guides/logging/go/zap/#logging-with-zap-in-a-go-application
 	// The Development logger:
 	//   Prints a stack trace from Warn level and up.
 	//   Always prints the package/file/line number (the caller)
