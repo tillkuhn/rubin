@@ -3,7 +3,7 @@ module github.com/tillkuhn/rubin
 go 1.19
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.14.0
+	github.com/cloudevents/sdk-go/v2 v2.15.0
 	github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3 v0.3.17
 	github.com/google/uuid v1.5.0
 	github.com/joho/godotenv v1.5.1
@@ -28,9 +28,9 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.19 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/oauth2 v0.15.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
