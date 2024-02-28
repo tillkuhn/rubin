@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -19,11 +21,7 @@ import (
 	"github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3"
 	"github.com/google/uuid"
 
-	"go.uber.org/zap"
-
 	"github.com/pkg/errors"
-
-	"github.com/tillkuhn/rubin/internal/log"
 )
 
 // defaultTimeout for http communication
@@ -37,23 +35,23 @@ var errClientResponse = errors.New("kafka client response error")
 type Client struct {
 	options    *Options
 	httpClient *http.Client
-	logger     *zap.SugaredLogger
+	// logger     *zerolog.Logger
 }
 
 // NewClient returns a new Rubin Client for http interaction
 func NewClient(options *Options) *Client {
-	logger := log.NewAtLevel(options.LogLevel)
-	logger.Infof("Kafka REST Proxy Client configured with endpoint=%s secret=%v",
-		options.RestEndpoint, len(options.ProducerAPISecret) > 0)
+	// logger := zerolog.Logger{}//log.NewAtLevel(options.LogLevel)
+	// logger.Info().Msgf("Kafka REST Proxy Client configured with endpoint=%s secret=%v",
+	//	options.RestEndpoint, len(options.ProducerAPISecret) > 0)
 	if options.HTTPTimeout.Seconds() < 1 {
-		logger.Debugf("Timeout duration is zero or too low, using default %v", defaultTimeout)
+		// logger.Printf("Timeout duration is zero or too low, using default %v", defaultTimeout)
 		options.HTTPTimeout = defaultTimeout
 	}
 
 	return &Client{
 		options:    options,
 		httpClient: &http.Client{Timeout: options.HTTPTimeout},
-		logger:     logger,
+		// logger:     &logger,
 	}
 }
 
@@ -70,9 +68,9 @@ func NewClientFromEnv() (*Client, error) {
 }
 
 // LogLevel allows dynamic configuration of LogLevel after the client has been initialized
-func (c *Client) LogLevel(levelStr string) {
-	c.logger = log.NewAtLevel(levelStr)
-}
+// func (c *Client) LogLevel(levelStr string) {
+//	logger = log.NewAtLevel(levelStr)
+//}
 
 // String representation of the client instance
 func (c *Client) String() string {
@@ -100,7 +98,8 @@ type RecordResponse struct {
 
 // Produce produces a Kafka Record into the given Topic
 func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResponse, error) {
-	defer log.SyncSilently(c.logger)
+	logger := log.Ctx(ctx).With().Str("logger", "producer").Logger()
+	// defer log.SyncSilently(logger)
 	keyData := c.messageKeyData(request.Key)
 	url := c.options.RecordEndpoint(request.Topic)
 
@@ -150,7 +149,7 @@ func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResp
 	req.Header.Set("Content-Type", "application/json") // don't add ;charset=UTF8 or server will complain
 	req.Header.Add("Authorization", "Basic "+c.options.BasicAuth())
 
-	c.logger.Infof("TopicURL=%s type=%s ce=%v len=%d hd=%d", url,
+	logger.Info().Msgf("TopicURL=%s type=%s ce=%v len=%d hd=%d", url,
 		fmt.Sprintf("%T", request.Data), request.AsCloudEvent, len(payloadJSON), len(apiHeaders),
 	)
 	c.checkDumpRequest(req)
@@ -164,7 +163,7 @@ func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResp
 		return prodResp, err
 	}
 
-	c.logger.Infow("RecordRequest successfully committed", "code", prodResp.ErrorCode, "key", prodResp.Key, "topic", prodResp.TopicName, "offset", prodResp.Offset, "partition", prodResp.PartitionId)
+	logger.Info().Msgf("RecordRequest successfully committed code=%d key=%v topic=%s offset=%d part=%d", prodResp.ErrorCode, prodResp.Key, prodResp.TopicName, prodResp.Offset, prodResp.PartitionId)
 
 	return prodResp, nil
 }
@@ -194,7 +193,7 @@ func parseResponse(res *http.Response) (RecordResponse, error) {
 func (c *Client) messageKeyData(key string) interface{} {
 	if key == "" {
 		key = uuid.New().String()
-		c.logger.Debugf("Using generated message key %s", key)
+		// logger.Printf("Using generated message key %s", key)
 	}
 	keyData := b64.StdEncoding.EncodeToString([]byte(key))
 	return keyData
@@ -255,7 +254,7 @@ func (c *Client) checkDumpResponse(res *http.Response) {
 // CloseSilently avoids "Unhandled error warnings if you use defer to close Resources
 func closeSilently(cl io.Closer) {
 	if err := cl.Close(); err != nil {
-		log.NewAtLevel("warn").Warn(err.Error())
+		log.Warn().Msg(err.Error())
 	}
 }
 

@@ -9,6 +9,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
 	"github.com/joho/godotenv"
 
 	"github.com/pkg/errors"
@@ -64,6 +67,8 @@ func main() {
 }
 
 func run() error {
+	log.Logger = log.With().Str("app", appName).Logger().Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	mLogger := log.With().Str("logger", "main").Logger()
 	// Parse cli args, 	skip if !flag.Parsed() check
 	ce := flag.Bool("ce", false, "CloudEvents format for event payload (default: STRING or JSON)")
 	help := flag.Bool("help", false, "Display this help")
@@ -74,14 +79,15 @@ func run() error {
 	topic := flag.String("topic", "", "Name of target Kafka Topic")
 	envFile := flag.String("env-file", "", "location of environment variable file e.g. /tmp/.env")
 	eType := flag.String("type", "event.Event", "CloudEvents: Type of event related to the originating occurrence")
-	verbosity := flag.String("v", "info", "Verbosity, one of 'debug', 'info', 'warn', 'error'")
+	verbosity := flag.String("v", "info", "verbosity level, one of 'debug', 'info', 'warn', 'error'")
 	var headers arrayFlags
 	flag.Var(&headers, "header", "Header formatted as key=value, can be used multiple times")
-
 	// nice: we can also use flags for maps https://www.emmanuelgautier.com/blog/string-map-command-argument-go
 	flag.Parse()
+	mLogger.Debug().Msgf("Using LogLevel=%s", applyLogLevel(*verbosity))
+
 	if *envFile != "" {
-		fmt.Printf("Loading environment from custom location '%s'\n", *envFile)
+		mLogger.Printf("Loading environment from custom location '%s'", *envFile)
 		err := godotenv.Load(*envFile)
 		if err != nil {
 			return errors.Wrap(err, "Error Loading environment vars from "+*envFile)
@@ -110,9 +116,10 @@ func run() error {
 	if strings.TrimSpace(*record) == "" {
 		return errors.Wrap(errClient, "message record must not be empty")
 	}
-	client.LogLevel(*verbosity)
+	// client.LogLevel(*verbosity)
 
-	if _, err := client.Produce(context.Background(), rubin.RecordRequest{
+	ctx := log.Logger.WithContext(context.Background())
+	if _, err := client.Produce(ctx, rubin.RecordRequest{
 		Topic:        *topic,
 		Data:         *record,
 		Key:          *key,
@@ -136,4 +143,15 @@ func showHelp() {
 	fmt.Println("\nIn addition, the following CLI arguments are supported")
 	flag.PrintDefaults()
 	fmt.Println()
+}
+
+// applyLogLevel adapt global log level depending on verbosity argument
+// returns current level
+func applyLogLevel(verbosity string) string {
+	if l, err := zerolog.ParseLevel(verbosity); err == nil {
+		zerolog.SetGlobalLevel(l)
+	} else {
+		log.Error().Msgf("Invalid level %s, skip apply: %v", verbosity, err)
+	}
+	return zerolog.GlobalLevel().String()
 }

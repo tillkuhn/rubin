@@ -36,15 +36,16 @@ func TestNewClient(t *testing.T) {
 	assert.NotNil(t, polly)
 	assert.NoError(t, err2)
 
-	ctx := context.WithValue(context.Background(), contextKeyTopic, testTopic)
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, contextKeyTopic, testTopic)
 	err := polly.Poll(ctx, kafka.ReaderConfig{Topic: testTopic}, DumpMessage)
 	assert.NoError(t, err)
-	polly.WaitForClose()
+	polly.WaitForClose(ctx)
 
 	ctx = context.WithValue(context.Background(), contextKeyTopic, errorTopic)
 	err = polly.Poll(ctx, kafka.ReaderConfig{Topic: errorTopic}, DumpMessage)
 	assert.Error(t, err)
-	polly.WaitForClose()
+	polly.WaitForClose(ctx)
 }
 
 func TestCloudEvent(t *testing.T) {

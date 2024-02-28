@@ -33,7 +33,7 @@ func TestProduceMessageOK(t *testing.T) {
 	}
 	cc := NewClient(opts)
 	assert.NotEmpty(t, cc.String())
-	cc.LogLevel("warn") // test if we can set the loglevel after instantiation
+	// cc.LogLevel("warn") // test if we can set the loglevel after instantiation
 
 	resp, err := cc.Produce(ctx, RecordRequest{
 		Topic:   testutil.Topic(200),

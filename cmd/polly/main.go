@@ -9,12 +9,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
 	"github.com/segmentio/kafka-go"
 
 	"github.com/pkg/errors"
 
 	"github.com/joho/godotenv"
-	"github.com/tillkuhn/rubin/internal/log"
 
 	"github.com/tillkuhn/rubin/pkg/polly"
 )
@@ -40,7 +42,8 @@ func main() {
 }
 
 func run() error {
-	logger := log.New()
+	log.Logger = log.With().Str("app", appName).Logger().Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	mLogger := log.With().Str("logger", "main").Logger()
 
 	var topic = flag.String("topic", "", "Kafka topic for message consumption ")
 	var ce = flag.Bool("ce", false, "except CloudEvents format for event payload")
@@ -48,7 +51,7 @@ func run() error {
 	var envFile = flag.String("env-file", "", "location of environment variable file e.g. /tmp/.env")
 	flag.Parse() // call after all flags are defined and before flags are accessed by the program
 	if *envFile != "" {
-		logger.Infof("Loading environment from custom location %s", *envFile)
+		mLogger.Info().Msgf("Loading environment from custom location %s", *envFile)
 		err := godotenv.Load(*envFile)
 		if err != nil {
 			return errors.Wrap(err, "Error Loading environment vars from "+*envFile)
@@ -62,10 +65,11 @@ func run() error {
 	// Nice: we no longer have to manage signal chanel manually https://henvic.dev/posts/signal-notify-context/
 	// also a good intro on different contexts: https://www.sohamkamani.com/golang/context/
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	ctx = log.Logger.WithContext(ctx)
 	defer func() {
 		stop()
-		p.WaitForClose()
-		_ = logger.Sync()
+		p.WaitForClose(ctx)
+		// _ = logger.Sync()
 	}()
 
 	handler := polly.DumpMessage
@@ -80,12 +84,12 @@ func run() error {
 
 	select {
 	case err = <-errChan:
-		logger.Infof("CLI: Got error from Kafka Consumer: %v\n", err)
+		mLogger.Info().Msgf("CLI: Got error from Kafka Consumer: %v\n", err)
 		return err
 	case <-time.After(timeoutAfter):
-		logger.Infof("CLI: Deadline exceeded after %v\n", timeoutAfter)
+		mLogger.Info().Msgf("CLI: Deadline exceeded after %v\n", timeoutAfter)
 	case <-ctx.Done():
-		logger.Infof("CLI: Context Notified on '%v', waiting for polly subsytem shutdown\n", ctx.Err())
+		mLogger.Info().Msgf("CLI: Context Notified on '%v', waiting for polly subsytem shutdown\n", ctx.Err())
 	}
 	return nil
 }

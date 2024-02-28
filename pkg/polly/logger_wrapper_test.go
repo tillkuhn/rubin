@@ -3,17 +3,17 @@ package polly
 import (
 	"testing"
 
-	"github.com/tillkuhn/rubin/internal/log"
+	"github.com/rs/zerolog"
 )
 
 func TestLogger(_ *testing.T) {
-	zLogger := log.NewAtLevel("")
+	zLogger := zerolog.Logger{}
 	lw := LoggerWrapper{
-		delegate: zLogger,
+		delegate: &zLogger,
 	}
 	lw.Printf("Hello %s", "world")
 	le := ErrorLoggerWrapper{
-		delegate: zLogger,
+		delegate: &zLogger,
 	}
 	le.Printf("Hello %s", "error")
 }
