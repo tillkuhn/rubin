@@ -89,7 +89,7 @@ jobs:
         with:
           # as of upload-artifact@v4 artifact name must be unique
           # https://github.com/actions/upload-artifact/issues/478#issuecomment-1885470013
-          name: digests-${{ matrix.platform }}
+          name: digests-${{ steps.build.outputs.digest }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
