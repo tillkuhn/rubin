@@ -1,7 +1,7 @@
 package polly
 
 import (
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
 )
 
 // LoggerWrapper wraps zerolog logger so we can used it as logger in kafka-go ReaderConfig
@@ -11,17 +11,17 @@ import (
 //		Logger:      LoggerWrapper{delegate: k.logger},
 //	})
 type LoggerWrapper struct {
-	delegate *zap.SugaredLogger
+	delegate *zerolog.Logger
 }
 
 func (l LoggerWrapper) Printf(format string, v ...interface{}) {
-	l.delegate.Debugf("kafka-go: "+format, v...)
+	l.delegate.Printf("kafka-go: "+format, v...)
 }
 
 type ErrorLoggerWrapper struct {
-	delegate *zap.SugaredLogger
+	delegate *zerolog.Logger
 }
 
 func (l ErrorLoggerWrapper) Printf(format string, v ...interface{}) {
-	l.delegate.Errorf("kafka-go: "+format, v...)
+	l.delegate.Error().Msgf("kafka-go: "+format, v...)
 }

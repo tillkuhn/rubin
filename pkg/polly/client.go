@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog"
 	"io"
 	"strings"
 	"sync"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/segmentio/kafka-go"
 	"github.com/tillkuhn/rubin/internal/log"
-	"go.uber.org/zap"
 
 	"github.com/segmentio/kafka-go/sasl/plain"
 )
@@ -50,7 +50,7 @@ func defaultMessageReader(config kafka.ReaderConfig) MessageReader {
 
 // Client represents a high level Kafka Consumer Client
 type Client struct {
-	logger  *zap.SugaredLogger
+	logger  *zerolog.Logger
 	options *Options
 	// readerFactory makes it easier to Mock readers as it can be overwritten by Tests
 	readerFactory func(config kafka.ReaderConfig) MessageReader
@@ -63,13 +63,13 @@ func (c *Client) String() string {
 }
 
 func NewClient(options *Options) *Client {
-	logger := log.New() // NewAtLevel("debug")
+	logger := zerolog.Ctx(context.TODO()) //log.New() // NewAtLevel("debug")
 	c := &Client{
 		options: options,
 		logger:  logger,
 	}
 	c.readerFactory = defaultMessageReader
-	logger.Debugf("New Client initialized %s@%s consumerGroupId=%s",
+	logger.Printf("New Client initialized %s@%s consumerGroupId=%s",
 		c.options.ConsumerAPIKey, c.options.BootstrapServers, c.options.ConsumerGroupID)
 	return c
 }
@@ -97,16 +97,16 @@ func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler Han
 	if len(topics) < 1 {
 		topics = []string{rc.Topic} // either must be set, topics is only used for logging
 	}
-	c.logger.Infof("Let's consume some yummy Kafka Messages on topic(s)=%s groupID=%s brokers=%v", topics, rc.GroupID, rc.Brokers)
+	c.logger.Info().Msgf("Let's consume some yummy Kafka Messages on topic(s)=%s groupID=%s brokers=%v", topics, rc.GroupID, rc.Brokers)
 
 	r := c.readerFactory(rc)
 	defer func() {
-		c.logger.Debugf("Post-consume: closing reader stream for topic(s)=%s", topics)
+		c.logger.Printf("Post-consume: closing reader stream for topic(s)=%s", topics)
 		if err := r.Close(); err != nil {
-			c.logger.Warnf("Error closing reader stream: %v", err)
+			c.logger.Warn().Msgf("Error closing reader stream: %v", err)
 		}
 		c.wg.Done() // decrement, WaitForClose() will wait for this group as there may be multiple consumers
-		c.logger.Debugf("Post-consume: reader for topic(s)=%s ready for shutdown", topics)
+		c.logger.Printf("Post-consume: reader for topic(s)=%s ready for shutdown", topics)
 	}()
 	c.wg.Add(1) // add to wait group to ensure graceful shutdown
 
@@ -122,13 +122,13 @@ func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler Han
 			// Note that it may take some time, since the Reader tries 3x times with wait interval first
 			switch {
 			case errors.Is(err, io.EOF):
-				c.logger.Debugf("Reader-loop: Reader has been closed (ctx err: %v)", ctx.Err())
+				c.logger.Printf("Reader-loop: Reader has been closed (ctx err: %v)", ctx.Err())
 			case errors.Is(err, context.Canceled):
-				c.logger.Debug("Reader-loop: Context was canceled, no problem")
+				c.logger.Println("Reader-loop: Context was canceled, no problem")
 			case errors.Is(err, context.DeadlineExceeded):
-				c.logger.Debug("Reader-loop: Context deadline exceeded, no problem")
+				c.logger.Println("Reader-loop: Context deadline exceeded, no problem")
 			default:
-				c.logger.Errorf("Reader-loop: Unexpected error on message read: %v", err)
+				c.logger.Error().Msgf("Reader-loop: Unexpected error on message read: %v", err)
 				return err
 			}
 			break
@@ -181,7 +181,7 @@ func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 
 // WaitForClose blocks until the Consumer WaitGroup counter is zero, or timeout is reached
 func (c *Client) WaitForClose() {
-	c.logger.Debug("Waiting for Consumer(s) to go down")
+	c.logger.Println("Waiting for Consumer(s) to go down")
 	cDone := make(chan struct{})
 	go func() {
 		defer close(cDone)
@@ -189,9 +189,9 @@ func (c *Client) WaitForClose() {
 	}()
 	select {
 	case <-cDone:
-		c.logger.Debugf("All Listeners went down within %v timeout", defaultCloseWaitTimeout)
+		c.logger.Printf("All Listeners went down within %v timeout", defaultCloseWaitTimeout)
 	case <-time.After(defaultCloseWaitTimeout):
-		c.logger.Debugf("Timeout %v reached, stop waiting for listener shutdown", defaultCloseWaitTimeout)
+		c.logger.Printf("Timeout %v reached, stop waiting for listener shutdown", defaultCloseWaitTimeout)
 	}
 }
 
