@@ -83,13 +83,15 @@ jobs:
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
+          platform="${{ matrix.platform }}"
+          echo "PLATFORM_SLUG=${platform//\//_}" >> "$GITHUB_ENV"
 
       - name: Upload image digest
         uses: actions/upload-artifact@v4
         with:
-          # as of upload-artifact@v4 artifact name must be unique
+          # as of upload-artifact@v4 artifact name must be unique (and must NOT contain a slash :-))
           # https://github.com/actions/upload-artifact/issues/478#issuecomment-1885470013
-          name: digests-${{ steps.build.outputs.digest }}
+          name: digests-${{ env.PLATFORM_SLUG }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
