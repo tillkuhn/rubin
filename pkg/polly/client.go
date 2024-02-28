@@ -6,17 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/rs/zerolog"
 	"io"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/tillkuhn/rubin/internal/log"
+	// "github.com/tillkuhn/rubin/internal/log"
 
 	"github.com/segmentio/kafka-go/sasl/plain"
 )
@@ -50,7 +51,7 @@ func defaultMessageReader(config kafka.ReaderConfig) MessageReader {
 
 // Client represents a high level Kafka Consumer Client
 type Client struct {
-	logger  *zerolog.Logger
+	// logger  *zerolog.Logger
 	options *Options
 	// readerFactory makes it easier to Mock readers as it can be overwritten by Tests
 	readerFactory func(config kafka.ReaderConfig) MessageReader
@@ -63,14 +64,14 @@ func (c *Client) String() string {
 }
 
 func NewClient(options *Options) *Client {
-	logger := zerolog.Ctx(context.TODO()) //log.New() // NewAtLevel("debug")
+	// logger := zerolog.Ctx(context.TODO()) //log.New() // NewAtLevel("debug")
 	c := &Client{
 		options: options,
-		logger:  logger,
+		// logger:  logger,
 	}
 	c.readerFactory = defaultMessageReader
-	logger.Printf("New Client initialized %s@%s consumerGroupId=%s",
-		c.options.ConsumerAPIKey, c.options.BootstrapServers, c.options.ConsumerGroupID)
+	// logger.Printf("New Client initialized %s@%s consumerGroupId=%s",
+	//	c.options.ConsumerAPIKey, c.options.BootstrapServers, c.options.ConsumerGroupID)
 	return c
 }
 
@@ -91,22 +92,26 @@ func NewClientFromEnv() (*Client, error) {
 // and this nice tutorial https://www.sohamkamani.com/golang/working-with-kafka/
 // doneChan chan<- struct{}
 func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler HandleMessageFunc) error {
-	log.SyncSilently(c.logger)
+	// log.SyncSilently(logger)
+	logger := log.Ctx(ctx).With().Str("logger", "poll").Logger()
 	c.applyDefaults(&rc)
+	rc.Logger = LoggerWrapper{delegate: &logger}
+	rc.ErrorLogger = ErrorLoggerWrapper{delegate: &logger}
+
 	topics := rc.GroupTopics
 	if len(topics) < 1 {
 		topics = []string{rc.Topic} // either must be set, topics is only used for logging
 	}
-	c.logger.Info().Msgf("Let's consume some yummy Kafka Messages on topic(s)=%s groupID=%s brokers=%v", topics, rc.GroupID, rc.Brokers)
+	logger.Info().Msgf("Let's consume some yummy Kafka Messages on topic(s)=%s groupID=%s brokers=%v", topics, rc.GroupID, rc.Brokers)
 
 	r := c.readerFactory(rc)
 	defer func() {
-		c.logger.Printf("Post-consume: closing reader stream for topic(s)=%s", topics)
+		logger.Printf("Post-consume: closing reader stream for topic(s)=%s", topics)
 		if err := r.Close(); err != nil {
-			c.logger.Warn().Msgf("Error closing reader stream: %v", err)
+			logger.Warn().Msgf("Error closing reader stream: %v", err)
 		}
 		c.wg.Done() // decrement, WaitForClose() will wait for this group as there may be multiple consumers
-		c.logger.Printf("Post-consume: reader for topic(s)=%s ready for shutdown", topics)
+		logger.Printf("Post-consume: reader for topic(s)=%s ready for shutdown", topics)
 	}()
 	c.wg.Add(1) // add to wait group to ensure graceful shutdown
 
@@ -122,13 +127,13 @@ func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler Han
 			// Note that it may take some time, since the Reader tries 3x times with wait interval first
 			switch {
 			case errors.Is(err, io.EOF):
-				c.logger.Printf("Reader-loop: Reader has been closed (ctx err: %v)", ctx.Err())
+				logger.Printf("Reader-loop: Reader has been closed (ctx err: %v)", ctx.Err())
 			case errors.Is(err, context.Canceled):
-				c.logger.Println("Reader-loop: Context was canceled, no problem")
+				logger.Println("Reader-loop: Context was canceled, no problem")
 			case errors.Is(err, context.DeadlineExceeded):
-				c.logger.Println("Reader-loop: Context deadline exceeded, no problem")
+				logger.Println("Reader-loop: Context deadline exceeded, no problem")
 			default:
-				c.logger.Error().Msgf("Reader-loop: Unexpected error on message read: %v", err)
+				logger.Error().Msgf("Reader-loop: Unexpected error on message read: %v", err)
 				return err
 			}
 			break
@@ -175,13 +180,12 @@ func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 	rc.CommitInterval = 1 * time.Second
 
 	// If Logger != nil, it is used to report internal changes within the
-	rc.Logger = LoggerWrapper{delegate: c.logger}
-	rc.ErrorLogger = ErrorLoggerWrapper{delegate: c.logger}
 }
 
 // WaitForClose blocks until the Consumer WaitGroup counter is zero, or timeout is reached
-func (c *Client) WaitForClose() {
-	c.logger.Println("Waiting for Consumer(s) to go down")
+func (c *Client) WaitForClose(ctx context.Context) {
+	logger := log.Ctx(ctx).With().Str("logger", "closer").Logger()
+	logger.Println("Waiting for Consumer(s) to go down")
 	cDone := make(chan struct{})
 	go func() {
 		defer close(cDone)
@@ -189,9 +193,9 @@ func (c *Client) WaitForClose() {
 	}()
 	select {
 	case <-cDone:
-		c.logger.Printf("All Listeners went down within %v timeout", defaultCloseWaitTimeout)
+		logger.Printf("All Listeners went down within %v timeout", defaultCloseWaitTimeout)
 	case <-time.After(defaultCloseWaitTimeout):
-		c.logger.Printf("Timeout %v reached, stop waiting for listener shutdown", defaultCloseWaitTimeout)
+		logger.Printf("Timeout %v reached, stop waiting for listener shutdown", defaultCloseWaitTimeout)
 	}
 }
 
