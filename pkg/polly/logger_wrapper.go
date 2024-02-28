@@ -2,6 +2,7 @@ package polly
 
 import (
 	"github.com/rs/zerolog"
+	"strings"
 )
 
 // LoggerWrapper wraps zerolog logger so we can used it as logger in kafka-go ReaderConfig
@@ -15,7 +16,7 @@ type LoggerWrapper struct {
 }
 
 func (l LoggerWrapper) Printf(format string, v ...interface{}) {
-	l.delegate.Printf("kafka-go: "+format, v...)
+	l.delegate.Printf(strings.TrimSpace("kafka-go: "+format), v...) // trimspace also removed \n
 }
 
 type ErrorLoggerWrapper struct {

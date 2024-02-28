@@ -94,9 +94,10 @@ func NewClientFromEnv() (*Client, error) {
 func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler HandleMessageFunc) error {
 	// log.SyncSilently(logger)
 	logger := log.Ctx(ctx).With().Str("logger", "poll").Logger()
+	rLogger := log.Ctx(ctx).With().Str("logger", "reader").Logger()
 	c.applyDefaults(&rc)
-	rc.Logger = LoggerWrapper{delegate: &logger}
-	rc.ErrorLogger = ErrorLoggerWrapper{delegate: &logger}
+	rc.Logger = LoggerWrapper{delegate: &rLogger}
+	rc.ErrorLogger = ErrorLoggerWrapper{delegate: &rLogger}
 
 	topics := rc.GroupTopics
 	if len(topics) < 1 {
@@ -129,9 +130,9 @@ func (c *Client) Poll(ctx context.Context, rc kafka.ReaderConfig, msgHandler Han
 			case errors.Is(err, io.EOF):
 				logger.Printf("Reader-loop: Reader has been closed (ctx err: %v)", ctx.Err())
 			case errors.Is(err, context.Canceled):
-				logger.Println("Reader-loop: Context was canceled, no problem")
+				logger.Print("Reader-loop: Context was canceled, no problem")
 			case errors.Is(err, context.DeadlineExceeded):
-				logger.Println("Reader-loop: Context deadline exceeded, no problem")
+				logger.Print("Reader-loop: Context deadline exceeded, no problem")
 			default:
 				logger.Error().Msgf("Reader-loop: Unexpected error on message read: %v", err)
 				return err
@@ -185,7 +186,7 @@ func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 // WaitForClose blocks until the Consumer WaitGroup counter is zero, or timeout is reached
 func (c *Client) WaitForClose(ctx context.Context) {
 	logger := log.Ctx(ctx).With().Str("logger", "closer").Logger()
-	logger.Println("Waiting for Consumer(s) to go down")
+	logger.Print("Waiting for Consumer(s) to go down")
 	cDone := make(chan struct{})
 	go func() {
 		defer close(cDone)
