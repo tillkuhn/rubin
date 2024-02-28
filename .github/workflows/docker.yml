@@ -87,7 +87,9 @@ jobs:
       - name: Upload image digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests
+          # as of upload-artifact@v4 artifact name must be unique
+          # https://github.com/actions/upload-artifact/issues/478#issuecomment-1885470013
+          name: digests-${{ matrix.platform }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -105,7 +107,9 @@ jobs:
       - name: Download image digests
         uses: actions/download-artifact@v4
         with:
-          name: digests
+          # see comment in upload-artifact@v4, we need to merge by pattern due to the platform specific names
+          pattern: digests-*
+          merge-multiple: true
           path: /tmp/digests
 
       - name: Set up Docker Buildx # but no need for QEMU in this job
