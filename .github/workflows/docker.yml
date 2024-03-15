@@ -47,12 +47,12 @@ jobs:
         run: |
           mkdir -p app/linux/amd64
           mkdir -p app/linux/arm64
-          mv -v dist/${{ github.event.repository.name }}_darwin_amd64_v1/${{ github.event.repository.name }} \
+          mv -v dist/${{ github.event.repository.name }}_linux_amd64_v1/${{ github.event.repository.name }} \
              app/linux/amd64/${{ github.event.repository.name }}
-          mv -v dist/${{ github.event.repository.name }}_darwin_arm64/${{ github.event.repository.name }} \
+          mv -v dist/${{ github.event.repository.name }}_linux_arm64/${{ github.event.repository.name }} \
              app/linux/arm64/${{ github.event.repository.name }}
-          mv -v dist/polly_darwin_amd64_v1/polly app/linux/amd64/polly
-          mv -v dist/polly_darwin_arm64/polly app/linux/arm64/polly
+          mv -v dist/polly_linux_amd64_v1/polly app/linux/amd64/polly
+          mv -v dist/polly_linux_arm64/polly app/linux/arm64/polly
 
       - name: Set Variables used in build-args for docker build
         run: |
