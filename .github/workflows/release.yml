@@ -12,11 +12,12 @@ env:
   # repo name: ${{ github.event.repository.name }}
 
 jobs:
-  ghcr-releaser:
-    name: Release multiplatform container images
+  release:
+    name: Release multiplatform binaries and container images
     runs-on: ubuntu-latest
     permissions:
       packages: write  # required to write to container registry
+      contents: write  # for go-releaser binaries
     strategy:
       fail-fast: true
       matrix:
