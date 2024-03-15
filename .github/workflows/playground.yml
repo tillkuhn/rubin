@@ -9,16 +9,9 @@ jobs:
   playground-job:
     name: Come out and play 1
     runs-on: ubuntu-latest
-    permissions:
-      packages: write  # required to write / cleanup container registry
+    #permissions:
+   #   packages: write  # required to write / cleanup container registry
     steps:
-      - uses: actions/delete-package-versions@v5
-        with:
-          package-name: ${{ github.event.repository.name }}
-          package-type: 'container'
-          min-versions-to-keep: 7
-          delete-only-untagged-versions: 'false'
-
       - name: Install latest rubin Kafka Record producer
         run: |
           echo "Tempdir runner.temp: ${{ runner.temp }}"
