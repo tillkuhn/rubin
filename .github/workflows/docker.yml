@@ -91,9 +91,9 @@ jobs:
 
       - name: Export docker image digest
         run: |
-          mkdir -p ${env.RUNNER_TEMP}/digests
+          mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.build.outputs.digest }}"
-          touch "${env.RUNNER_TEMP}/digests/${digest#sha256:}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
           platform="${{ matrix.platform }}"
           echo "PLATFORM_SLUG=${platform//\//_}" >> "$GITHUB_ENV"
 
@@ -103,7 +103,7 @@ jobs:
           # as of upload-artifact@v4, artifact name must be unique (and must NOT contain a slash :-))
           # https://github.com/actions/upload-artifact/issues/478#issuecomment-1885470013
           name: digests-${{ env.PLATFORM_SLUG }}
-          path: ${env.RUNNER_TEMP}/digests/*
+          path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
 
@@ -123,7 +123,7 @@ jobs:
           # see comment in upload-artifact@v4, we need to merge by pattern due to the platform specific names
           pattern: digests-*
           merge-multiple: true
-          path: ${env.RUNNER_TEMP}/digests
+          path: ${{ runner.temp }}/digests
 
       - name: Set up Docker Buildx # but no need for QEMU in this job
         uses: docker/setup-buildx-action@v3
@@ -142,7 +142,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create manifest list and push
-        working-directory: ${env.RUNNER_TEMP}/digests
+        # ${{ runner.temp }}  /home/runner/work/_temp, better than /tmp
+        working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
