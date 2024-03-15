@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Install latest rubin Kafka Record producer
         run: |
-          echo "Tempdir ${env.RUNNER_TEMP}"
+          echo "Tempdir ${process.env.RUNNER_TEMP} vs ${{ runner.temp }}"
           curl -LsSo ${{ runner.temp }}/rubin.zip $(curl -LsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
           unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }} && chmod u+g ${{ runner.temp }}/rubin
 
