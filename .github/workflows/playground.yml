@@ -7,12 +7,12 @@ on:
 
 jobs:
   playground-job:
-    name: Come out and test
+    name: Come out and play
     runs-on: ubuntu-latest
     steps:
       - name: Install latest rubin Kafka Record producer
         run: |
-          echo "Tempdir ${process.env.RUNNER_TEMP} vs ${{ runner.temp }}"
+          echo "Tempdir runner.temp: ${{ runner.temp }}"
           curl -LsSo ${{ runner.temp }}/rubin.zip $(curl -LsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
           unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }} && chmod u+g ${{ runner.temp }}/rubin
 
