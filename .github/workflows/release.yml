@@ -15,7 +15,7 @@ jobs:
   go-releaser:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # for go-releaser binaries
+      contents: write  # for go-releaser binaries (add and cleanup)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,6 +63,18 @@ jobs:
           path: app/
           if-no-files-found: error
           retention-days: 1
+
+      # https://github.com/marketplace/actions/delete-older-releases
+      - name: Delete old released binaries
+        uses: dev-drprasad/delete-older-releases@v0.3.3
+        with:
+          #repo: <owner>/<repoName> # defaults to current repo
+          keep_latest: 5
+          keep_min_download_counts: 1 # Optional parameters
+          delete_expired_data: 30 # must set, or nothing gets removed
+          #delete_tag_pattern: beta # defaults to ""
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docker-push:
     name: Release multiplatform binaries and container images
