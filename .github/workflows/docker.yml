@@ -45,9 +45,9 @@ jobs:
         run: |
           mkdir -p dist/linux/amd64
           mkdir -p dist/linux/arm64
-          mv -v dist/${{ github.event.repository.name }}_darwin_amd64_v1/{{ github.event.repository.name }} \
+          mv -v dist/${{ github.event.repository.name }}_darwin_amd64_v1/${{ github.event.repository.name }} \
              dist/linux/amd64/${{ github.event.repository.name }}
-          mv -v dist/${{ github.event.repository.name }}_darwin_arm64/{{ github.event.repository.name }} \
+          mv -v dist/${{ github.event.repository.name }}_darwin_arm64/${{ github.event.repository.name }} \
              dist/linux/arm64/${{ github.event.repository.name }}
 
       - name: Set Variables used in build-args for docker build
