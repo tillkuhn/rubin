@@ -7,11 +7,11 @@ on:
 
 env:
   REGISTRY: ghcr.io  # default is docker.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}  # e.g. user/fancy-project
 
 jobs:
   ghcr-releaser:
-    name: Release container images
+    name: Release multiplatform container images
     runs-on: ubuntu-latest
     permissions:
       packages: write  # required to write to container registry
@@ -40,7 +40,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Set up QEMU
+      # QEMU is a generic and open source machine & userspace emulator and virtualizer.
+      # to emulating a complete machine in software without any need for hardware virtualization support
+      - name: Set up QEMU static binaries
         uses: docker/setup-qemu-action@v3
         with:
           # since we run platform specific builds in parallel, we only need the current platform
@@ -49,7 +51,7 @@ jobs:
       - name: Set up Docker Buildx for Multiple platform builds
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GitHub Container Registry
+      - name: Login to GitHub container registry (ghcr.io)
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -61,14 +63,23 @@ jobs:
       - name: Build docker image
         id: build # so we can reference this step as ${{ steps.build.outputs.digest }} in export step
         uses: docker/build-push-action@v5
+        # Resulting commandline from this action:
+        #  /usr/bin/docker buildx build --build-arg APP_COMMIT=0ce58cd --build-arg APP_VERSION=v0.7.3 --build-arg APP_DATE=2024-02-28T22:55:42
+        #  --build-arg APP_BUILT_BY=docker/build-push-action --iidfile /home/runner/work/_temp/docker-actions-toolkit-xyz/iidfile
+        #  --label org.opencontainers.image.created=2024-02-28T22:55:42.455Z --label org.opencontainers.image.description="taken from GitHub 'About' Description"
+        #  --label org.opencontainers.image.licenses=Apache-2.0 --label org.opencontainers.image.revision=0ce58cde59c89fc15b07791107fb4969c585ab51
+        #  --label org.opencontainers.image.source=https://github.com/tillkuhn/rubin --label org.opencontainers.image.title=rubin
+        #  --label org.opencontainers.image.url=https://github.com/tillkuhn/rubin --label org.opencontainers.image.version=v0.7.3
+        #  --output type=image,name=ghcr.io/tillkuhn/rubin,push-by-digest=true,name-canonical=true,push=true
+        #  --platform linux/amd64 --provenance false --metadata-file /home/runner/work/_temp/docker-actions-toolkit-xyz/metadata-file .
         with:
           platforms:  ${{ matrix.platform }}
           context: .
           push: false # push later
-          # don't specify 'tags' here (error "get can't push tagged ref by digest")
+          # DO NOT specify 'tags' here (error "get can't push tagged ref by digest")
           # tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # provenance? See GitHub Action produces unknown architecture and OS: https://github.com/docker/build-push-action/issues/820
+          # why provenance: false? See "GitHub Action produces unknown architecture and OS": https://github.com/docker/build-push-action/issues/820
           provenance: false
           build-args: |
             APP_COMMIT=${{ env.APP_COMMIT }}
@@ -78,21 +89,21 @@ jobs:
           # capture output for export and upload image digests
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
 
-      - name: Export image digest
+      - name: Export docker image digest
         run: |
-          mkdir -p /tmp/digests
+          mkdir -p ${env.RUNNER_TEMP}/digests
           digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          touch "${env.RUNNER_TEMP}/digests/${digest#sha256:}"
           platform="${{ matrix.platform }}"
           echo "PLATFORM_SLUG=${platform//\//_}" >> "$GITHUB_ENV"
 
-      - name: Upload image digest
+      - name: Upload docker image digest
         uses: actions/upload-artifact@v4
         with:
-          # as of upload-artifact@v4 artifact name must be unique (and must NOT contain a slash :-))
+          # as of upload-artifact@v4, artifact name must be unique (and must NOT contain a slash :-))
           # https://github.com/actions/upload-artifact/issues/478#issuecomment-1885470013
           name: digests-${{ env.PLATFORM_SLUG }}
-          path: /tmp/digests/*
+          path: ${env.RUNNER_TEMP}/digests/*
           if-no-files-found: error
           retention-days: 1
 
@@ -112,7 +123,7 @@ jobs:
           # see comment in upload-artifact@v4, we need to merge by pattern due to the platform specific names
           pattern: digests-*
           merge-multiple: true
-          path: /tmp/digests
+          path: ${env.RUNNER_TEMP}/digests
 
       - name: Set up Docker Buildx # but no need for QEMU in this job
         uses: docker/setup-buildx-action@v3
@@ -131,7 +142,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create manifest list and push
-        working-directory: /tmp/digests
+        working-directory: ${env.RUNNER_TEMP}/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
