@@ -8,20 +8,27 @@ updates:
       - dependencies
       - go
       - Skip Changelog
-    assignees:
-      - "tillkuhn"
-    open-pull-requests-limit: 6
+    assignees: [ "tillkuhn" ]
+    open-pull-requests-limit: 5
 
   # Maintain dependencies for GitHub Actions
+  # Dependabot only supports updates to GitHub Actions using the GitHub repository syntax, such as actions/checkout@v4.
   - package-ecosystem: github-actions
     directory: /
-    rebase-strategy: "disabled"  # Disable rebasing for GH actions
+    rebase-strategy: disabled  # Disable rebasing for GH actions
     schedule:
-      interval: "monthly"
+      interval: monthly
+    assignees: [ "tillkuhn" ]
+    open-pull-requests-limit: 5
 
   # Watch Dockerfile
+  # In order for Dependabot to fetch Docker metadata, maintainers of Docker images must add the
+  # org.opencontainers.image.source label to their Dockerfile, and include the URL of the source repository.
+  # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#docker
   - package-ecosystem: docker
     directory: /
-    rebase-strategy: "disabled"  # Disable rebasing for GH actions
+    rebase-strategy: disabled  # Disable rebasing for GH actions
     schedule:
-      interval: "monthly"
+      interval: monthly
+    assignees: [ "tillkuhn" ]
+    open-pull-requests-limit: 5

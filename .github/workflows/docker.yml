@@ -8,6 +8,8 @@ on:
 env:
   REGISTRY: ghcr.io  # default is docker.io
   IMAGE_NAME: ${{ github.repository }}  # e.g. user/fancy-project
+  # https://stackoverflow.com/a/62805013/4292075
+  # repo name: ${{ github.event.repository.name }}
 
 jobs:
   ghcr-releaser:
@@ -26,6 +28,27 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # USE ygo-releaser to build binaries outside docker
+      - name: Set up Go
+        uses: actions/setup-go@v5
+
+      - name: Run GoReleaser build mode only
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: build --clean
+
+      # https://goreleaser.com/customization/builds/#why-is-there-a-_v1-suffix-on-amd64-builds
+      - name: Move goreleaser generated binaries to a predictable path for Dockerfile
+        run: |
+          mkdir -p dist/linux/amd64
+          mkdir -p dist/linux/arm64
+          mv -v dist/${{ github.event.repository.name }}_darwin_amd64_v1/{{ github.event.repository.name }} \
+             dist/linux/amd64/${{ github.event.repository.name }}
+          mv -v dist/${{ github.event.repository.name }}_darwin_arm64/{{ github.event.repository.name }} \
+             dist/linux/arm64/${{ github.event.repository.name }}
 
       - name: Set Variables used in build-args for docker build
         run: |

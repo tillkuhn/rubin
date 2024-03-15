@@ -1,9 +1,19 @@
 # Use the following command for local testing (only creates binaries in local dist/ directory)
+#
 # RUBIN_VERSION=latest
 # RUBIN_BUILD_DATE=$(date +'%Y-%m-%dT%H:%M:%S') ˜
 # RUBIN_COMMIT=$(git log -1 --pretty=format:%h) \
 # goreleaser build --clean --skip-validate --snapshot
-
+#
+# add --single-target to build for current GOOS / GOARCH only
+#
+# Why is there a _v1 suffix on amd64 builds?
+# Go 1.18 introduced the GOAMD64 option, and v1 is the default value for that option.
+#
+#    • building  binary=dist/rubin_linux_amd64_v1/rubin
+#    • building  binary=dist/rubin_darwin_arm64/rubin
+#    • building  binary=dist/rubin_darwin_amd64_v1/rubin
+#    • building  binary=dist/rubin_linux_arm64/rubin
 before:
   hooks:
     - go mod tidy
@@ -35,7 +45,7 @@ builds:
     #ldflags:
     # example for classes != main:
     # -s -w -X github.com/tillkuhn/rubin/cmd.Version={{.Env.RUBIN_VERSION}} -X github.com/tillkuhn/rubin/cmd.Commit={{.Env.RUBIN_COMMIT}} -X github.com/tillkuhn/rubin/cmd.BuildDate={{.Env.rubin_BUILD_DATE}}
-    
+
     # Path to main.go file or main package.
     # Notice: when used with `gomod.proxy`, this must be a package.
     #
