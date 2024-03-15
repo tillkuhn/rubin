@@ -12,18 +12,10 @@ env:
   # repo name: ${{ github.event.repository.name }}
 
 jobs:
-  release:
-    name: Release multiplatform binaries and container images
+  go-releaser:
     runs-on: ubuntu-latest
     permissions:
-      packages: write  # required to write to container registry
       contents: write  # for go-releaser binaries
-    strategy:
-      fail-fast: true
-      matrix:
-        platform:
-          - linux/amd64
-          - linux/arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,25 +33,14 @@ jobs:
       #    echo "RUBIN_VERSION=${GITHUB_REF#refs/*/}" >> "$GITHUB_ENV"
       #    echo "RUBIN_BUILD_DATE=$(date +'%Y-%m-%dT%H:%M:%S')" >> "$GITHUB_ENV"
       - name: Run GoReleaser to build and release binaries (only once on linux/amd64)
-        # https://github.com/orgs/community/discussions/27105#discussioncomment-3254644
-        if: matrix.platform == 'linux/amd64'
         uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
           version: latest
-          #args: build --clean
+          #args: build --clean # use this if you only need binaries w/o releasing anything
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run GoReleaser to build binary only mode (only if linux/arm64)
-        # https://github.com/orgs/community/discussions/27105#discussioncomment-3254644
-        if: matrix.platform == 'linux/arm64'
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          distribution: goreleaser
-          version: latest
-          args: build --clean
 
       - name: Move goreleaser generated binaries to a predictable platform path for docker build
         # use target subdirectory app/${{ matrix.platform }}/, which is passed as build arg to docker build,
@@ -74,6 +55,41 @@ jobs:
              app/linux/arm64/${{ github.event.repository.name }}
           mv -v dist/polly_linux_amd64_v1/polly app/linux/amd64/polly
           mv -v dist/polly_linux_arm64/polly app/linux/arm64/polly
+
+      - name: Upload binaries built by go-releaser
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-releaser-binaries
+          path: app/
+          if-no-files-found: error
+          retention-days: 1
+
+  docker-push:
+    name: Release multiplatform binaries and container images
+    runs-on: ubuntu-latest
+    needs: [go-releaser]
+    permissions:
+      packages: write  # required to write to container registry
+    strategy:
+      fail-fast: true
+      # restrict steps in matrix: https://github.com/orgs/community/discussions/27105#discussioncomment-3254644
+      # example: if: matrix.platform == 'linux/amd64'
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download binaries built by go-releaser from previous job
+        uses: actions/download-artifact@v4
+        with:
+          name: go-releaser-binaries
+          #merge-multiple: true
+          #path: ${{ runner.temp }}/digests
 
       - name: Set Variables used in build-args for docker build
         run: |
@@ -163,8 +179,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: write  # avoid unexpected status from PUT request to https://ghcr.io/v2/tillkuhn/rubin/manifests/latest: 403 Forbidden
-    needs:
-      - ghcr-releaser
+    needs: [docker-push]
     steps:
       - name: Download image digests
         uses: actions/download-artifact@v4
