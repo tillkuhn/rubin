@@ -55,7 +55,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: go-releaser-binaries
-          #path: app2/ # this path will contain app1 and app2
+          path: app2/ # this path will contain app1 and app2
       - name: look
         run: |
           ls -l app2/
