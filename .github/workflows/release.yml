@@ -92,8 +92,10 @@ jobs:
           #merge-multiple: true
           #path: ${{ runner.temp }}/digests
 
-      - name: Set Variables used in build-args for docker build
+      - name: Chmod apps and set Variables used in build-args for docker build
+        # we can't chmod in Dockerfile with distroless, but x will be preserved during COPY
         run: |
+          chmod -R ugo+x app/
           echo "APP_COMMIT=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
           echo "APP_VERSION=${GITHUB_REF#refs/*/}" >> "$GITHUB_ENV"
           echo "APP_DATE=$(date +'%Y-%m-%dT%H:%M:%S')" >> "$GITHUB_ENV"
