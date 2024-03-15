@@ -7,7 +7,7 @@ on:
 
 jobs:
   playground-job:
-    name: Come out and play
+    name: Come out and play 1
     runs-on: ubuntu-latest
     steps:
       - name: Install latest rubin Kafka Record producer
@@ -47,7 +47,7 @@ jobs:
           KAFKA_PRODUCER_API_SECRET: ${{ secrets.KAFKA_PRODUCER_API_SECRET }}
 
   playground-job2:
-    name: Come out and play
+    name: Come out and play 2
     runs-on: ubuntu-latest
     needs: [playground-job]
     steps:
@@ -58,4 +58,4 @@ jobs:
           path: app2/
       - name: look
         run: |
-          ls -l
+          ls -l app2/
