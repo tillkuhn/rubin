@@ -9,9 +9,9 @@ jobs:
   playground-job:
     name: Come out and play 1
     runs-on: ubuntu-latest
-    #permissions:
+    permissions:
    #   packages: write  # required to write / cleanup container registry
-    #       contents: write  # for go-releaser binaries
+       contents: write  # for releases
     steps:
       # https://github.com/marketplace/actions/delete-older-releases
       - name: Delete old released binaries
@@ -20,7 +20,7 @@ jobs:
           #repo: <owner>/<repoName> # defaults to current repo
           keep_latest: 5
           keep_min_download_counts: 1 # Optional parameters
-          delete_expired_data: 30 # Optional parameters
+          delete_expired_data: 30 # must set, or nothing gets removed
           #delete_tag_pattern: beta # defaults to ""
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
