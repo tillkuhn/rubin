@@ -15,6 +15,17 @@ jobs:
           echo "Tempdir runner.temp: ${{ runner.temp }}"
           curl -LsSo ${{ runner.temp }}/rubin.zip $(curl -LsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
           unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }} && chmod u+g ${{ runner.temp }}/rubin
+          mkdir app/
+          echo hase >app/app1
+          echo hase >app/app2
+
+      - name: Upload binaries built by go-releaser
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-releaser-binaries
+          path: app/
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Test Kafka Messaging
         id: test-kafka-messaging
@@ -34,3 +45,17 @@ jobs:
         env:
           KAFKA_PRODUCER_TOPIC_URL: ${{ secrets.KAFKA_PRODUCER_TOPIC_URL }}
           KAFKA_PRODUCER_API_SECRET: ${{ secrets.KAFKA_PRODUCER_API_SECRET }}
+
+  playground-job2:
+    name: Come out and play
+    runs-on: ubuntu-latest
+    needs: [playground-job]
+    steps:
+      - name: Download binaries built by go-releaser from previous job
+        uses: actions/download-artifact@v4
+        with:
+          name: go-releaser-binaries
+          path: app2/
+      - name: look
+        run: |
+          ls -l
