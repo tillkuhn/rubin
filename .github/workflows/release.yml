@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # USE ygo-releaser to build binaries outside docker
+      # Use go-releaser to build binaries outside docker
       - name: Set up Go
         uses: actions/setup-go@v5
 
