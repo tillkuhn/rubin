@@ -9,6 +9,8 @@ jobs:
   playground-job:
     name: Come out and play 1
     runs-on: ubuntu-latest
+    permissions:
+      packages: write  # required to write / cleanup container registry
     steps:
       - uses: actions/delete-package-versions@v5
         with:

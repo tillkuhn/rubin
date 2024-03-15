@@ -5,6 +5,7 @@ FROM gcr.io/distroless/static:nonroot@sha256:55c636171053dbc8ae07a280023bd787d29
 ARG PLATFORM="linux/amd64"
 COPY /app/${PLATFORM}/rubin /rubin
 COPY /app/${PLATFORM}/polly /polly
+RUN chmod ugo+x /rubin /polly
 # this is the numeric version of user nonroot:nonroot to check runAsNonRoot in kubernetes
 USER 65532:65532
 ENTRYPOINT ["/rubin"]
