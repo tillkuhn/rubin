@@ -21,17 +21,15 @@ before:
 gomod:
   proxy: true
 
-# https://goreleaser.com/customization/builds/
+# Fields: https://goreleaser.com/customization/builds/
+# Multiple binaries: https://github.com/orgs/goreleaser/discussions/3169#discussioncomment-2989473
 builds:
-  - env:
+  - id: rubin
+    env:
       - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-      #- windows # skip for the time being
-    goarch:
-      - amd64
-      - arm64
+    goos: [linux,darwin]
+    goarch: [amd64,arm64]
+    goamd64: [v1]
     # (...) if we only have GOARCH=arm64, we do not need to set a variable GOARM
     # https://github.com/goreleaser/goreleaser/issues/36
     # goarm: ["6", "7"]
@@ -51,6 +49,16 @@ builds:
     #
     # Default is `.`
     main: ./cmd/rubin
+    binary: rubin
+
+  - id: polly
+    env:
+      - CGO_ENABLED=0
+    goos: [linux,darwin]
+    goarch: [amd64,arm64]
+    goamd64: [v1]
+    main: ./cmd/polly
+    binary: polly
 
 archives:
   - format: zip
