@@ -62,6 +62,12 @@ lint: fmt $(GOLANGCI_LINT) download ## Lints all code with golangci-lint
 
 lint-reports: out/lint.xml
 
+# https://goreleaser.com/cmd/goreleaser_build/ --single-target means ignore config, use only current GOOS and GOARCH
+# example binary=dist/rubin_darwin_amd64_v1/rubin
+.PHONY: build-goreleaser
+build-goreleaser: ## Build binary via goreleaser
+	goreleaser build --clean --single-target --skip validate
+
 .PHONY: out/lint.xml
 out/lint.xml: $(GOLANGCI_LINT) out download
 	$(GOLANGCI_LINT) run ./... --out-format checkstyle | tee "$(@)"
