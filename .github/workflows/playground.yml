@@ -7,6 +7,9 @@ on:
 
 jobs:
   playground-job:
+    env:
+      REGISTRY: ghcr.io  # default is docker.io
+      IMAGE_NAME: ${{ github.repository }}  # e.g. user/fancy-project
     name: Come out and play 1
     runs-on: ubuntu-latest
     #permissions:
@@ -58,7 +61,7 @@ jobs:
 
       - name: Test Kafka Messaging
         id: test-kafka-messaging
-        # GitHub vars: https://dev.to/mihinduranasinghe/working-with-environment-variables-github-actions-part-2-46po
+        # GitHub's vars: https://dev.to/mihinduranasinghe/working-with-environment-variables-github-actions-part-2-46po
         # Default Env Vars: https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
         # https://stackoverflow.com/questions/59073850/github-actions-get-url-of-test-build
         # GITHUB_REPOSITORY=<github-org>/rubin
