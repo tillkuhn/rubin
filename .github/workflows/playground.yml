@@ -12,6 +12,8 @@ jobs:
       IMAGE_NAME: ${{ github.repository }}  # e.g. user/fancy-project
     name: Come out and play 1
     runs-on: ubuntu-latest
+    permissions:
+      packages: write  # required to write to container registry
     #permissions:
     #   packages: write  # required to write / cleanup container registry
     #   contents: write  # for releases
