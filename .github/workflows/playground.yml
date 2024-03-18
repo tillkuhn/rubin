@@ -14,23 +14,47 @@ jobs:
     #   contents: write  # for releases
     steps:
 
-
-      - name: Install latest rubin Kafka Record producer
-        run: |
-          echo "Tempdir runner.temp: ${{ runner.temp }}"
-          curl -LsSo ${{ runner.temp }}/rubin.zip $(curl -LsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
-          unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }} && chmod u+g ${{ runner.temp }}/rubin
-          mkdir app/
-          echo hase >app/app1
-          echo hase >app/app2
-
-      - name: Upload binaries built by go-releaser
-        uses: actions/upload-artifact@v4
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          name: go-releaser-binaries
-          path: app/
-          if-no-files-found: error
-          retention-days: 1
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-test
+
+      - name: Build docker image
+        id: build # so we can reference this step as ${{ steps.build.outputs.digest }} in export step
+        uses: docker/build-push-action@v5
+        with:
+          #${{ matrix.platform }}
+          platforms:  "linux/amd64"
+          context: ./testdata
+          # for none-multistage
+          push: true
+          # DO NOT specify 'tags' here (error "get can't push tagged ref by digest")
+          # tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # why provenance: false? See "GitHub Action produces unknown architecture and OS": https://github.com/docker/build-push-action/issues/820
+          provenance: false
+          #build-args: |
+            #APP_COMMIT=${{ env.APP_COMMIT }}
+          # capture output for export and upload image digests
+          #outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-test,push-by-digest=true,name-canonical=true,push=true
+
+#      - name: Install latest rubin Kafka Record producer
+#        run: |
+#          echo "Tempdir runner.temp: ${{ runner.temp }}"
+#          curl -LsSo ${{ runner.temp }}/rubin.zip $(curl -LsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
+#          unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }} && chmod u+g ${{ runner.temp }}/rubin
+#          mkdir app/
+#          echo hase >app/app1
+#          echo hase >app/app2
+#
+#      - name: Upload binaries built by go-releaser
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: go-releaser-binaries
+#          path: app/
+#          if-no-files-found: error
+#          retention-days: 1
 
       - name: Test Kafka Messaging
         id: test-kafka-messaging
