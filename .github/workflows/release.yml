@@ -141,7 +141,7 @@ jobs:
 
       - name: Build docker image
         id: build # so we can reference this step as ${{ steps.build.outputs.digest }} in export step
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         # Resulting commandline from this action:
         #  /usr/bin/docker buildx build --build-arg APP_COMMIT=0ce58cd --build-arg APP_VERSION=v0.7.3 --build-arg APP_DATE=2024-02-28T22:55:42
         #  --build-arg APP_BUILT_BY=docker/build-push-action --iidfile /home/runner/work/_temp/docker-actions-toolkit-xyz/iidfile
