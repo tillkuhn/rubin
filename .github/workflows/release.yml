@@ -66,7 +66,7 @@ jobs:
 
       # https://github.com/marketplace/actions/delete-older-releases
       - name: Delete old released binaries
-        uses: dev-drprasad/delete-older-releases@v0.3.3
+        uses: dev-drprasad/delete-older-releases@v0.3.4
         with:
           #repo: <owner>/<repoName> # defaults to current repo
           keep_latest: 5
