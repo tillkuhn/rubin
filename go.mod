@@ -1,9 +1,9 @@
 module github.com/tillkuhn/rubin
 
-go 1.19
+go 1.22
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.15.2
+	github.com/cloudevents/sdk-go/v2 v2.16.0
 	github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3 v0.3.18
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
