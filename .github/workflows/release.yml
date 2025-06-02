@@ -2,8 +2,8 @@ name: Publish to ghcr.io
 
 on:
   push:
-    tags:
-      - '*'
+    branches: [ 'main' ] # only for testing purposes
+    tags:  [ '*' ]
 
 env:
   REGISTRY: ghcr.io  # default is docker.io
@@ -50,16 +50,21 @@ jobs:
         run: |
           echo "Artifacts:"
           echo ${{steps.goreleaser.outputs.artifacts}}
+          # {"project_name":"rubin","tag":"v0.9.1","previous_tag":"v0.9.0","version":"0.9.1","commit":"de4fbb79aab8bc21ff05608109bb82043c5b3b92","date":"2025-06-02T17:01:49.945018501Z","runtime":{"goos":"linux","goarch":"amd64"}}
           echo "Metadata:"
           echo ${{steps.goreleaser.outputs.metadata}}
-          mkdir -p app/linux/amd64
-          mkdir -p app/linux/arm64
-          mv -v dist/${{ github.event.repository.name }}_linux_amd64_v1/${{ github.event.repository.name }} \
-             app/linux/amd64/${{ github.event.repository.name }}
-          mv -v dist/${{ github.event.repository.name }}_linux_arm64/${{ github.event.repository.name }} \
-             app/linux/arm64/${{ github.event.repository.name }}
-          mv -v dist/polly_linux_amd64_v1/polly app/linux/amd64/polly
-          mv -v dist/polly_linux_arm64/polly app/linux/arm64/polly
+          echo "Files:"
+          find dist/
+          #for arch in amd64 arm64; do
+          #  mkdir -p app/linux/$arch
+          # example archive name=dist/rubin_0.9.1_linux_amd64.zip
+          # see .goreleaser.yml name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+          #mv -v dist/${{ github.event.repository.name }}_${{steps.goreleaser.outputs.metadata.version}}_linux_amd64_v1/${{ github.event.repository.name }} \
+          #   app/linux/amd64/${{ github.event.repository.name }}
+          #mv -v dist/${{ github.event.repository.name }}_linux_arm64/${{ github.event.repository.name }} \
+          #   app/linux/arm64/${{ github.event.repository.name }}
+          #mv -v dist/polly_linux_amd64_v1/polly app/linux/amd64/polly
+          #mv -v dist/polly_linux_arm64/polly app/linux/arm64/polly
 
       - name: Upload binaries built by go-releaser
         uses: actions/upload-artifact@v4

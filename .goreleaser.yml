@@ -60,7 +60,9 @@ builds:
     main: ./cmd/polly
     binary: polly
 
+# https://goreleaser.com/customization/archive/
 archives:
-  - format: zip
+  - format: [zip]
+    # name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - none*
