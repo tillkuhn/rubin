@@ -2,7 +2,7 @@ name: Publish to ghcr.io
 
 on:
   push:
-    #branches: [ 'main' ] # only for testing purposes
+    branches: [ 'main' ] # only for testing purposes
     tags:  [ '*' ]
 
 env:
