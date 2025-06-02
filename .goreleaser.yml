@@ -14,7 +14,6 @@
 #    • building  binary=dist/rubin_darwin_arm64/rubin
 #    • building  binary=dist/rubin_darwin_amd64_v1/rubin
 #    • building  binary=dist/rubin_linux_arm64/rubin
-
 version: 2
 before:
   hooks:
@@ -62,9 +61,7 @@ builds:
     main: ./cmd/polly
     binary: polly
 
-# https://goreleaser.com/customization/archive/
 archives:
   - format: zip
-    # name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - none*
