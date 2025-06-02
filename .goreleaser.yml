@@ -14,6 +14,8 @@
 #    • building  binary=dist/rubin_darwin_arm64/rubin
 #    • building  binary=dist/rubin_darwin_amd64_v1/rubin
 #    • building  binary=dist/rubin_linux_arm64/rubin
+
+version: 2
 before:
   hooks:
     - go mod tidy
