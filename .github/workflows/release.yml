@@ -25,6 +25,8 @@ jobs:
       # Use go-releaser to build binaries outside docker
       - name: Set up Go
         uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.x
 
       # not necessary? https://goreleaser.com/cookbooks/using-main.version/
       #- name: Set Variables used in .goreleaser.yml for ldflags
