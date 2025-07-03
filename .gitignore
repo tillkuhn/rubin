@@ -174,3 +174,5 @@ fabric.properties
 
 .env
 dist/
+# backup of golangci-lint config
+.golangci.bck.yml

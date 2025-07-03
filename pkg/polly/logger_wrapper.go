@@ -1,8 +1,9 @@
 package polly
 
 import (
-	"github.com/rs/zerolog"
 	"strings"
+
+	"github.com/rs/zerolog"
 )
 
 // LoggerWrapper wraps zerolog logger so we can used it as logger in kafka-go ReaderConfig

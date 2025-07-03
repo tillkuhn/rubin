@@ -7,7 +7,7 @@ SHELL=/bin/bash -e -o pipefail
 PWD = $(shell pwd)
 
 # constants
-GOLANGCI_VERSION = 1.55.1
+GOLANGCI_VERSION = 2.2.1 # run `golangci-lint migrate` to migrate from 1.x
 DOCKER_REPO = rubin
 DOCKER_TAG = latest
 
