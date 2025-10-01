@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1.2
 
 # single stage version of Dockerfile, expects binaries to be built outside docker build
-FROM gcr.io/distroless/static:nonroot@sha256:a9f88e0d99c1ceedbce565fad7d3f96744d15e6919c19c7dafe84a6dd9a80c61 AS prd
+FROM gcr.io/distroless/static:nonroot@sha256:e8a4044e0b4ae4257efa45fc026c0bc30ad320d43bd4c1a7d5271bd241e386d0 AS prd
 ARG PLATFORM="linux/amd64"
 COPY /app/${PLATFORM}/rubin /rubin
 COPY /app/${PLATFORM}/polly /polly
