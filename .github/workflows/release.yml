@@ -58,7 +58,7 @@ jobs:
           mv -v dist/polly_linux_arm64_v8.0/polly app/linux/arm64/polly
 
       - name: Upload binaries built by go-releaser
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: go-releaser-binaries
           path: app/
@@ -179,7 +179,7 @@ jobs:
           echo "PLATFORM_SLUG=${platform//\//_}" >> "$GITHUB_ENV"
 
       - name: Upload docker image digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           # as of upload-artifact@v4, artifact name must be unique (and must NOT contain a slash :-))
           # https://github.com/actions/upload-artifact/issues/478#issuecomment-1885470013
