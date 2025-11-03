@@ -65,3 +65,10 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+linters-settings:
+  # https://stackoverflow.com/a/58860694/4292075
+  gosec:
+    # To specify a set of rules to explicitly exclude.
+    # Available rules: https://github.com/securego/gosec#available-rules
+    excludes:
+      - G204

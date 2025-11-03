@@ -1,18 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
 	"github.com/segmentio/kafka-go"
+	"github.com/tillkuhn/rubin/internal/usage"
 
 	"github.com/pkg/errors"
 
@@ -22,7 +25,8 @@ import (
 )
 
 const (
-	appName = "polly"
+	envconfigPrefix = "kafka"
+	appName         = "polly"
 )
 
 var (
@@ -46,10 +50,16 @@ func run() error {
 	mLogger := log.With().Str("logger", "main").Logger()
 
 	var topic = flag.String("topic", "", "Kafka topic for message consumption ")
+	var help = flag.Bool("help", false, "Display this help")
 	var ce = flag.Bool("ce", false, "except CloudEvents format for event payload")
-
+	var callback = flag.String("callback", "", "Callback command with optional arguments to pass message payload via STDIN")
 	var envFile = flag.String("env-file", "", "location of environment variable file e.g. /tmp/.env")
 	flag.Parse() // call after all flags are defined and before flags are accessed by the program
+	if *help {
+		usage.ShowHelp(envconfigPrefix, &polly.Options{})
+		return nil
+	}
+
 	if *envFile != "" {
 		mLogger.Info().Msgf("Loading environment from custom location %s", *envFile)
 		err := godotenv.Load(*envFile)
@@ -72,8 +82,10 @@ func run() error {
 		// _ = logger.Sync()
 	}()
 
-	handler := polly.DumpMessage
-	if *ce {
+	handler := polly.DumpMessage // default simple message-as-is dump handler
+	if *callback != "" {
+		handler = PassToCallbackHandler(*callback)
+	} else if *ce {
 		handler = DumpCloudEvent
 	}
 
@@ -101,4 +113,28 @@ func DumpCloudEvent(_ context.Context, message kafka.Message) {
 		return
 	}
 	fmt.Printf("%d/%d type %s\npayload: %v\n", message.Partition, message.Offset, ce.Type(), ce)
+}
+
+// PassToCallbackHandler wraps handlerCmd and returns a function that can be used as polly.HandleMessageFunc
+func PassToCallbackHandler(handlerCmd string) func(ctx context.Context, message kafka.Message) {
+	log.Info().Msgf("Registering callback for externalCommand: %s", handlerCmd)
+	return func(ctx context.Context, message kafka.Message) {
+		payload := string(message.Value)
+		// Split command and arguments
+		parts := strings.Fields(handlerCmd)
+		if len(parts) == 0 {
+			log.Error().Msg("Handler command is empty")
+			return
+		}
+		//
+		cmd := exec.CommandContext(ctx, parts[0], parts[1:]...) // #nosec G204
+		cmd.Stdin = bytes.NewBufferString(payload)
+
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to execute handler command: %s, output: %s", handlerCmd, string(output))
+			return
+		}
+		log.Info().Msgf("Handler command executed successfully: %s, output: %s", handlerCmd, string(output))
+	}
 }

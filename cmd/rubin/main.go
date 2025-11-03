@@ -7,16 +7,15 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/tillkuhn/rubin/internal/usage"
 
 	"github.com/joho/godotenv"
 
 	"github.com/pkg/errors"
 
-	"github.com/kelseyhightower/envconfig"
 	"github.com/tillkuhn/rubin/pkg/rubin"
 	"go.uber.org/automaxprocs/maxprocs"
 )
@@ -94,7 +93,7 @@ func run() error {
 		}
 	}
 	if *help || len(os.Args) < 2 {
-		showHelp()
+		usage.ShowHelp(envconfigPrefix, &rubin.Options{})
 		return nil
 	}
 	headerMap := make(map[string]string)
@@ -132,17 +131,6 @@ func run() error {
 		return err
 	}
 	return nil
-}
-
-func showHelp() {
-	usagePadding := 4
-	tabs := tabwriter.NewWriter(os.Stdout, 1, 0, usagePadding, ' ', 0)
-	_ = envconfig.Usagef(envconfigPrefix, &rubin.Options{}, tabs, envconfig.DefaultTableFormat)
-	_ = tabs.Flush()
-	// use below approach instead of flag.Usage() for customized output: https://stackoverflow.com/a/23726033/4292075
-	fmt.Println("\nIn addition, the following CLI arguments are supported")
-	flag.PrintDefaults()
-	fmt.Println()
 }
 
 // applyLogLevel adapt global log level depending on verbosity argument
