@@ -235,7 +235,7 @@ jobs:
 
       - name: Install latest rubin Kafka Record producer
         run: |
-          curl -LsSo ${{ runner.temp }}/rubin.zip $(curl -LsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
+          curl -fLsSo ${{ runner.temp }}/rubin.zip $(curl -fLsS 'https://api.github.com/repos/tillkuhn/rubin/releases/latest' | jq -r '.assets[] | select(.name|endswith("linux_amd64.zip")).browser_download_url')
           unzip ${{ runner.temp }}/rubin.zip -d ${{ runner.temp }} && chmod u+g ${{ runner.temp }}/rubin
 
       - name: Produce Kafka Publish Event

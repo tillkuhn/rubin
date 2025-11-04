@@ -48,60 +48,86 @@ func main() {
 func run() error {
 	log.Logger = log.With().Str("app", appName).Logger().Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	mLogger := log.With().Str("logger", "main").Logger()
+	ctx := log.Logger.WithContext(context.Background())
 
-	var topic = flag.String("topic", "", "Kafka topic for message consumption ")
-	var help = flag.Bool("help", false, "Display this help")
 	var ce = flag.Bool("ce", false, "except CloudEvents format for event payload")
-	var callback = flag.String("callback", "", "Callback command with optional arguments to pass message payload via STDIN")
 	var envFile = flag.String("env-file", "", "location of environment variable file e.g. /tmp/.env")
+	var handler = flag.String("handler", "", "External command with optional arguments to pass message payload via STDIN, if not set messages will be dumped to STDOUT")
+	var help = flag.Bool("help", false, "Display this help")
+	var timeout = flag.Duration("timeout", timeoutAfter, "Timeout duration to run the consumer, zero or negative value means no timeout")
+	var topic = flag.String("topic", "", "Kafka topic for message consumption")
+
 	flag.Parse() // call after all flags are defined and before flags are accessed by the program
+
 	if *help {
 		usage.ShowHelp(envconfigPrefix, &polly.Options{})
 		return nil
 	}
 
-	if *envFile != "" {
-		mLogger.Info().Msgf("Loading environment from custom location %s", *envFile)
-		err := godotenv.Load(*envFile)
-		if err != nil {
-			return errors.Wrap(err, "Error Loading environment vars from "+*envFile)
-		}
+	if err := initEnv(ctx, envFile); err != nil {
+		return err
 	}
 	p, err := polly.NewClientFromEnv()
 	if err != nil {
 		return err
 	}
 
-	// Nice: we no longer have to manage signal chanel manually https://henvic.dev/posts/signal-notify-context/
+	// Nice: From go 1.16 onwards we no longer have to manage signal chanel manually https://henvic.dev/posts/signal-notify-context/
 	// also a good intro on different contexts: https://www.sohamkamani.com/golang/context/
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
-	ctx = log.Logger.WithContext(ctx)
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)
 	defer func() {
 		stop()
 		p.WaitForClose(ctx)
-		// _ = logger.Sync()
 	}()
 
-	handler := polly.DumpMessage // default simple message-as-is dump handler
-	if *callback != "" {
-		handler = PassToCallbackHandler(*callback)
-	} else if *ce {
-		handler = DumpCloudEvent
+	var handlerFunc polly.HandleMessageFunc
+	switch {
+	case *handler != "":
+		handlerFunc = PassToCallbackHandler(*handler)
+	case *ce:
+		handlerFunc = DumpCloudEvent
+	default:
+		handlerFunc = polly.DumpMessage // default simple message-as-is dump handlerFunc
 	}
 
+	timeoutChan := initTimeoutChannel(ctx, timeout)
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- p.Poll(ctx, kafka.ReaderConfig{Topic: *topic}, handler)
+		errChan <- p.Poll(ctx, kafka.ReaderConfig{Topic: *topic}, handlerFunc)
 	}()
 
 	select {
 	case err = <-errChan:
-		mLogger.Info().Msgf("CLI: Got error from Kafka Consumer: %v\n", err)
+		mLogger.Info().Msgf("CLI: Got error from Kafka Consumer: %v", err)
 		return err
-	case <-time.After(timeoutAfter):
-		mLogger.Info().Msgf("CLI: Deadline exceeded after %v\n", timeoutAfter)
+	case <-timeoutChan:
+		mLogger.Info().Msgf("CLI: Timeout period exceeded after %v, shutting down consumer", timeoutAfter)
 	case <-ctx.Done():
 		mLogger.Info().Msgf("CLI: Context Notified on '%v', waiting for polly subsytem shutdown\n", ctx.Err())
+	}
+	return nil
+}
+
+// set the timeout channel to nil when the timeout is zero or negative. A nil channel in a select never fires,
+// so we can keep the select block simple.
+func initTimeoutChannel(ctx context.Context, timeout *time.Duration) <-chan time.Time {
+	timeoutChan := (<-chan time.Time)(nil)
+	if *timeout > 0 {
+		timeoutChan = time.After(*timeout)
+		log.Ctx(ctx).Info().Msgf("Timeout is set, consumer will terminate after %v", *timeout)
+	} else {
+		log.Ctx(ctx).Info().Msg("No timeout set, running consumer until interrupted")
+	}
+	return timeoutChan
+}
+
+func initEnv(ctx context.Context, envFile *string) error {
+	if *envFile != "" {
+		log.Ctx(ctx).Info().Msgf("Loading environment from custom location %s", *envFile)
+		err := godotenv.Load(*envFile)
+		if err != nil {
+			return errors.Wrap(err, "Error Loading environment vars from "+*envFile)
+		}
 	}
 	return nil
 }

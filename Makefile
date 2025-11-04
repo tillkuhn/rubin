@@ -138,7 +138,8 @@ run: fmt ## Run the app with JSON String Message
 
 run-polly: fmt ## Run the experimental polly client
 	LOG_LEVEL=debug KAFKA_CONSUMER_MAX_RECEIVE=10 go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
-	./cmd/polly/main.go -env-file $(RUBIN_ENV_FILE) -topic "ci.events" -callback testdata/event-callback.sh
+	./cmd/polly/main.go -env-file $(RUBIN_ENV_FILE) \
+	-topic "ci.events" -handler testdata/event-callback.sh
 
 run-help: fmt ## Run the default rubin app and display app helm
 	@go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" ./cmd/rubin/main.go -help
