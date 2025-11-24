@@ -134,7 +134,7 @@ minor: ## Create Minor Release
 run: fmt ## Run the app with JSON String Message
 	KAFKA_DUMP_MESSAGES=false go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \
 	./cmd/rubin/main.go -env-file $(RUBIN_ENV_FILE) -v debug -topic $(TOPIC) -record '{"message":"Hello Franz!"}' \
-	-source "urn:rubin:makefile" -subject "my.subject" -header="day=$(shell date +%A)" -header "header2=yeah" -ce
+	-source "dev/rubin/makefile" -subject "my.subject" -header="day=$(shell date +%A)" -header "header2=yeah" -ce
 
 run-polly: fmt ## Run the experimental polly client
 	LOG_LEVEL=debug KAFKA_CONSUMER_MAX_RECEIVE=10 go run -ldflags="-w -s -X 'main.version=$(shell git describe --tags --abbrev=0)' -X 'main.commit=$(shell git rev-parse --short HEAD)'" \

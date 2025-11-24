@@ -163,7 +163,7 @@ func (c *Client) Produce(ctx context.Context, request RecordRequest) (RecordResp
 		return prodResp, err
 	}
 
-	logger.Info().Msgf("RecordRequest successfully committed code=%d key=%v topic=%s offset=%d part=%d", prodResp.ErrorCode, prodResp.Key, prodResp.TopicName, prodResp.Offset, prodResp.PartitionId)
+	logger.Info().Msgf("Record successfully committed code=%d topic=%s offset=%d partition=%d", prodResp.ErrorCode, prodResp.TopicName, prodResp.Offset, prodResp.PartitionId)
 
 	return prodResp, nil
 }

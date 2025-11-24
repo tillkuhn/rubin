@@ -37,6 +37,15 @@ var (
 	timeoutAfter = 30 * time.Second
 )
 
+type cliFlags struct {
+	ce      bool
+	envFile string
+	handler string
+	help    bool
+	timeout time.Duration
+	topic   string
+}
+
 func main() {
 	fmt.Printf("Welcome to %s %s built %s by %s (%s)\n\n", appName, version, date, builtBy, commit)
 	if err := run(); err != nil {
@@ -50,21 +59,16 @@ func run() error {
 	mLogger := log.With().Str("logger", "main").Logger()
 	ctx := log.Logger.WithContext(context.Background())
 
-	var ce = flag.Bool("ce", false, "except CloudEvents format for event payload")
-	var envFile = flag.String("env-file", "", "location of environment variable file e.g. /tmp/.env")
-	var handler = flag.String("handler", "", "External command with optional arguments to pass message payload via STDIN, if not set messages will be dumped to STDOUT")
-	var help = flag.Bool("help", false, "Display this help")
-	var timeout = flag.Duration("timeout", timeoutAfter, "Timeout duration to run the consumer, zero or negative value means no timeout")
-	var topic = flag.String("topic", "", "Kafka topic for message consumption")
+	flags := parseFlags()
 
 	flag.Parse() // call after all flags are defined and before flags are accessed by the program
 
-	if *help {
+	if flags.help {
 		usage.ShowHelp(envconfigPrefix, &polly.Options{})
 		return nil
 	}
 
-	if err := initEnv(ctx, envFile); err != nil {
+	if err := initEnv(ctx, flags.envFile); err != nil {
 		return err
 	}
 	p, err := polly.NewClientFromEnv()
@@ -80,20 +84,12 @@ func run() error {
 		p.WaitForClose(ctx)
 	}()
 
-	var handlerFunc polly.HandleMessageFunc
-	switch {
-	case *handler != "":
-		handlerFunc = PassToCallbackHandler(*handler)
-	case *ce:
-		handlerFunc = DumpCloudEvent
-	default:
-		handlerFunc = polly.DumpMessage // default simple message-as-is dump handlerFunc
-	}
-
-	timeoutChan := initTimeoutChannel(ctx, timeout)
+	handlerFunc := selectHandler(flags.handler, flags.ce)
+	timeoutChan := initTimeoutChannel(ctx, flags.timeout)
 	errChan := make(chan error, 1)
+
 	go func() {
-		errChan <- p.Poll(ctx, kafka.ReaderConfig{Topic: *topic}, handlerFunc)
+		errChan <- p.Poll(ctx, kafka.ReaderConfig{Topic: flags.topic}, handlerFunc)
 	}()
 
 	select {
@@ -110,26 +106,49 @@ func run() error {
 
 // set the timeout channel to nil when the timeout is zero or negative. A nil channel in a select never fires,
 // so we can keep the select block simple.
-func initTimeoutChannel(ctx context.Context, timeout *time.Duration) <-chan time.Time {
+func initTimeoutChannel(ctx context.Context, timeout time.Duration) <-chan time.Time {
 	timeoutChan := (<-chan time.Time)(nil)
-	if *timeout > 0 {
-		timeoutChan = time.After(*timeout)
-		log.Ctx(ctx).Info().Msgf("Timeout is set, consumer will terminate after %v", *timeout)
+	if timeout > 0 {
+		timeoutChan = time.After(timeout)
+		log.Ctx(ctx).Info().Msgf("Timeout is set, consumer will terminate after %v", timeout)
 	} else {
 		log.Ctx(ctx).Info().Msg("No timeout set, running consumer until interrupted")
 	}
 	return timeoutChan
 }
 
-func initEnv(ctx context.Context, envFile *string) error {
-	if *envFile != "" {
-		log.Ctx(ctx).Info().Msgf("Loading environment from custom location %s", *envFile)
-		err := godotenv.Load(*envFile)
+func initEnv(ctx context.Context, envFile string) error {
+	if envFile != "" {
+		log.Ctx(ctx).Info().Msgf("Loading environment from custom location %s", envFile)
+		err := godotenv.Load(envFile)
 		if err != nil {
-			return errors.Wrap(err, "Error Loading environment vars from "+*envFile)
+			return errors.Wrap(err, "Error Loading environment vars from "+envFile)
 		}
 	}
 	return nil
+}
+
+func parseFlags() cliFlags {
+	var flags cliFlags
+	flag.BoolVar(&flags.ce, "ce", false, "expect CloudEvents format for event payload")
+	flag.StringVar(&flags.envFile, "env-file", "", "location of environment variable file e.g. /tmp/.env")
+	flag.StringVar(&flags.handler, "handler", "", "External command with optional arguments to pass message payload via STDIN, if not set messages will be dumped to STDOUT")
+	flag.BoolVar(&flags.help, "help", false, "Display this help")
+	flag.DurationVar(&flags.timeout, "timeout", timeoutAfter, "Timeout duration to run the consumer, zero or negative value means no timeout")
+	flag.StringVar(&flags.topic, "topic", "", "Kafka topic for message consumption")
+	flag.Parse()
+	return flags
+}
+
+func selectHandler(handlerCmd string, ce bool) polly.HandleMessageFunc {
+	switch {
+	case handlerCmd != "":
+		return PassToCallbackHandler(handlerCmd)
+	case ce:
+		return DumpCloudEvent
+	default:
+		return polly.DumpMessage
+	}
 }
 
 func DumpCloudEvent(_ context.Context, message kafka.Message) {
