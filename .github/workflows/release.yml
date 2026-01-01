@@ -98,7 +98,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download binaries built by go-releaser from previous job
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: go-releaser-binaries
           path: app/ # must specify path (e.g. same as during upload), or files end up on root (?)
@@ -198,7 +198,7 @@ jobs:
     needs: [docker-push]
     steps:
       - name: Download image digests
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           # see comment in upload-artifact@v4, we need to merge by pattern due to the platform specific names
           pattern: digests-*
