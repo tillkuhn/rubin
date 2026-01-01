@@ -25,7 +25,7 @@ jobs:
           echo hase >app/app2
 
       - name: Upload binaries built by go-releaser
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: go-releaser-binaries
           path: app/
