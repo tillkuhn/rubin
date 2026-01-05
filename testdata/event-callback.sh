@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 # test handler for polly callback demo
+sleepy=0 # simulate long processing
 
 me=$(basename "$0")
 # or if you only want to read from stdin into a variable
 if [ ! -t 0 ]; then
     echo "$me: Reading data from STDIN"  # cat cloud-event.json | ./script.sh
     json=$(</dev/stdin)
-    if ! jq type --argjson data "$json" >/dev/null; then
-        echo "$me: Exit due to invalid JSON"; exit 5
+    echo "$me: Received message: $json, processing for $sleepy seconds"
+    sleep $sleepy # test shutdown handling error="signal: killed"
+    echo "$me: Processing finished after $sleepy seconds"
+       if ! jq type --argjson data "$json" >/dev/null; then
+        echo "$me: Message is not valid JSON, stop further processing"; exit 0
     fi
     event_type=$(jq -n --argjson data "$json" '$data.type')
     subject=$(jq -n --argjson data "$json" '$data.subject')

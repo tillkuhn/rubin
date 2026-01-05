@@ -156,7 +156,7 @@ func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 		TLS:     &tls.Config{MinVersion: tls.VersionTLS12},
 	}
 
-	// For confluent, there's usually only a single server, for CloudKarafka we have three
+	// For confluent, there's usually only a single broker server, but it could be also a list
 	rc.Brokers = []string{c.options.BootstrapServers}
 
 	// GroupID is important for ACLs, can be overwritten for request but default is derived from client options
@@ -176,7 +176,7 @@ func (c *Client) applyDefaults(rc *kafka.ReaderConfig) {
 		//
 		rc.RetentionTime = defaultRetentionTime
 	}
-	rc.StartOffset = c.options.StartOffset() // see godoc for details
+	rc.StartOffset = c.options.StartOffset() // see go-doc for details
 	// flushes commits to Kafka every  x seconds, default = 0 (means sync)
 	rc.CommitInterval = 1 * time.Second
 

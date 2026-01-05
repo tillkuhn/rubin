@@ -76,7 +76,7 @@ func run() error {
 		return err
 	}
 
-	// Nice: From go 1.16 onwards we no longer have to manage signal chanel manually https://henvic.dev/posts/signal-notify-context/
+	// Nice: From go 1.16 onwards we no longer have to manage signal channel manually https://henvic.dev/posts/signal-notify-context/
 	// also a good intro on different contexts: https://www.sohamkamani.com/golang/context/
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)
 	defer func() {
@@ -97,9 +97,9 @@ func run() error {
 		mLogger.Info().Msgf("CLI: Got error from Kafka Consumer: %v", err)
 		return err
 	case <-timeoutChan:
-		mLogger.Info().Msgf("CLI: Timeout period exceeded after %v, shutting down consumer", timeoutAfter)
+		mLogger.Info().Msgf("CLI: Timeout period exceeded after %v, shutting down consumer", flags.timeout)
 	case <-ctx.Done():
-		mLogger.Info().Msgf("CLI: Context Notified on '%v', waiting for polly subsytem shutdown\n", ctx.Err())
+		mLogger.Info().Msgf("CLI: Context Notified on '%v', waiting for polly subsystem shutdown\n", ctx.Err())
 	}
 	return nil
 }
@@ -160,6 +160,7 @@ func DumpCloudEvent(_ context.Context, message kafka.Message) {
 	fmt.Printf("%d/%d type %s\npayload: %v\n", message.Partition, message.Offset, ce.Type(), ce)
 }
 
+// PassToCallbackHandler wraps handlerCmd and returns a function that can be used as polly.HandleMessageFunc
 // PassToCallbackHandler wraps handlerCmd and returns a function that can be used as polly.HandleMessageFunc
 func PassToCallbackHandler(handlerCmd string) func(ctx context.Context, message kafka.Message) {
 	log.Info().Msgf("Registering callback for externalCommand: %s", handlerCmd)
