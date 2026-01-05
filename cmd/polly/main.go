@@ -15,6 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/segmentio/kafka-go"
+	"github.com/tillkuhn/rubin/internal/logging"
 	"github.com/tillkuhn/rubin/internal/usage"
 
 	"github.com/pkg/errors"
@@ -38,12 +39,13 @@ var (
 )
 
 type cliFlags struct {
-	ce      bool
-	envFile string
-	handler string
-	help    bool
-	timeout time.Duration
-	topic   string
+	ce        bool
+	envFile   string
+	handler   string
+	help      bool
+	timeout   time.Duration
+	topic     string
+	verbosity string
 }
 
 func main() {
@@ -61,12 +63,12 @@ func run() error {
 
 	flags := parseFlags()
 
-	flag.Parse() // call after all flags are defined and before flags are accessed by the program
-
 	if flags.help {
 		usage.ShowHelp(envconfigPrefix, &polly.Options{})
 		return nil
 	}
+
+	mLogger.Debug().Msgf("Switching to LogLevel=%s", logging.ApplyLogLevel(flags.verbosity))
 
 	if err := initEnv(ctx, flags.envFile); err != nil {
 		return err
@@ -136,7 +138,9 @@ func parseFlags() cliFlags {
 	flag.BoolVar(&flags.help, "help", false, "Display this help")
 	flag.DurationVar(&flags.timeout, "timeout", timeoutAfter, "Timeout duration to run the consumer, zero or negative value means no timeout")
 	flag.StringVar(&flags.topic, "topic", "", "Kafka topic for message consumption")
-	flag.Parse()
+	flag.StringVar(&flags.verbosity, "v", "info", "verbosity level, one of 'debug', 'info', 'warn', 'error'")
+	flag.Parse() // call after all flags are defined and before flags are accessed by the program
+
 	return flags
 }
 

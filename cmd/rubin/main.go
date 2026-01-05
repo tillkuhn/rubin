@@ -10,6 +10,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/tillkuhn/rubin/internal/logging"
 	"github.com/tillkuhn/rubin/internal/usage"
 
 	"github.com/joho/godotenv"
@@ -83,7 +84,7 @@ func run() error {
 	flag.Var(&headers, "header", "Header formatted as key=value, can be used multiple times")
 	// nice: we can also use flags for maps https://www.emmanuelgautier.com/blog/string-map-command-argument-go
 	flag.Parse()
-	mLogger.Debug().Msgf("Using LogLevel=%s", applyLogLevel(*verbosity))
+	mLogger.Debug().Msgf("Switching to LogLevel=%s", logging.ApplyLogLevel(*verbosity))
 
 	if *envFile != "" {
 		mLogger.Printf("Loading environment from custom location '%s'", *envFile)
@@ -131,15 +132,4 @@ func run() error {
 		return err
 	}
 	return nil
-}
-
-// applyLogLevel adapt global log level depending on verbosity argument
-// returns current level
-func applyLogLevel(verbosity string) string {
-	if l, err := zerolog.ParseLevel(verbosity); err == nil {
-		zerolog.SetGlobalLevel(l)
-	} else {
-		log.Error().Msgf("Invalid level %s, skip apply: %v", verbosity, err)
-	}
-	return zerolog.GlobalLevel().String()
 }
