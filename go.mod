@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
-	github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3 v0.3.18
+	github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3 v0.3.19
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -19,7 +19,6 @@ require (
 require (
 	github.com/antihax/optional v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -32,6 +31,4 @@ require (
 	go.uber.org/zap v1.27.1 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
-	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
 )
