@@ -3,8 +3,8 @@ github.com/antihax/optional v1.0.0 h1:xK2lYat7ZLaVVcIuj82J8kIro4V6kDe0AUDFboUCwc
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/cloudevents/sdk-go/v2 v2.16.2 h1:ZYDFrYke4FD+jM8TZTJJO6JhKHzOQl2oqpFK1D+NnQM=
 github.com/cloudevents/sdk-go/v2 v2.16.2/go.mod h1:laOcGImm4nVJEU+PHnUrKL56CKmRL65RlQF0kRmW/kg=
-github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3 v0.3.19 h1:f/jJADwiIT9uPqSSIAW5GbRrr31AJCqr7z8HG9H9beE=
-github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3 v0.3.19/go.mod h1:qJAUraWU9BERQWyalrPsxt+ECELWPV+qsyOaP00VidY=
+github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3 v0.3.20 h1:YB0EDf0shb0pu6+cFZWaOukA20pWzDSajGjc3Lz+Vog=
+github.com/confluentinc/kafka-rest-sdk-go/kafkarestv3 v0.3.20/go.mod h1:qJAUraWU9BERQWyalrPsxt+ECELWPV+qsyOaP00VidY=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
